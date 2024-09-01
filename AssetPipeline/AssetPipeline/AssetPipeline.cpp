@@ -100,10 +100,25 @@ int main(int argc, char *argv[])
 		write_chunk(magics[i], output, &file);
 		file.close();
 
-
 	}
-	// PPU supports 8 palettes
-	save_palette();
+	
+	// put all palettes into one array
+	vector<unsigned char> output_palette;
+	for (int i = 0; i < emptyPaletteIndex; i++) {
+		vector<vector<unsigned char>> palette = palettes[i];
+		for (int color = 0; color < PALETTE_SIZE; color++) {
+			output_palette.push_back(palette[color][0]);
+			output_palette.push_back(palette[color][1]);
+			output_palette.push_back(palette[color][2]);
+			output_palette.push_back(palette[color][3]);
+		}
+	}
 
-    
+	std::ofstream file;
+	file.open("asset/pale");
+
+	// save all palettes
+	write_chunk("pale", output_palette, &file);
+	file.close();
+
 }

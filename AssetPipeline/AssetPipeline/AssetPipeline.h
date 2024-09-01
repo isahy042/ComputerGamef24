@@ -70,7 +70,7 @@ void process_8x8_tile(int i, int j, vector<vector<vector<unsigned char>>> &img, 
 		}
 	}
 
-	cout << "Palette Index " << currentPaletteIndex << ", with colors: \n" 
+	/*cout << "Palette Index " << currentPaletteIndex << ", with colors: \n" 
 		<< palettes[currentPaletteIndex][0][0] << " " << palettes[currentPaletteIndex][0][1] << " " 
 		<< palettes[currentPaletteIndex][0][2] << " " << palettes[currentPaletteIndex][0][3] << " \n"
 		<< palettes[currentPaletteIndex][1][0] << " " << palettes[currentPaletteIndex][1][1] << " " 
@@ -78,15 +78,15 @@ void process_8x8_tile(int i, int j, vector<vector<vector<unsigned char>>> &img, 
 		<< palettes[currentPaletteIndex][2][0] << " " << palettes[currentPaletteIndex][2][1] << " " 
 		<< palettes[currentPaletteIndex][2][2] << " " << palettes[currentPaletteIndex][2][3] << " \n"
 		<< palettes[currentPaletteIndex][3][0] << " " << palettes[currentPaletteIndex][3][1] << " " 
-		<< palettes[currentPaletteIndex][3][2] << " " << palettes[currentPaletteIndex][3][3] << " \n";
+		<< palettes[currentPaletteIndex][3][2] << " " << palettes[currentPaletteIndex][3][3] << " \n";*/
 
 	// push correct output onto output vector
 	for (int ii = i; ii < i + 8; ii++) {
 		for (int jj = j; jj < j + 8; jj++) {
 
-			cout << "Pixel" <<ii<<" "<<jj<<" with colors : \n"
+			/*cout << "Pixel" <<ii<<" "<<jj<<" with colors : \n"
 				<< img[ii][jj][0] << " " << img[ii][jj][1] << " "
-				<< img[ii][jj][2] << " " << img[ii][jj][3] << " \n";
+				<< img[ii][jj][2] << " " << img[ii][jj][3] << " \n";*/
 
 			if (cmp_color(img[ii][jj],currentPalette[0])) {
 				output.push_back(0); output.push_back(0);
@@ -108,11 +108,6 @@ void process_8x8_tile(int i, int j, vector<vector<vector<unsigned char>>> &img, 
 
 }
 
-/*
-Save the palettes variable into our designated format
-*/
-void save_palette() {
-}
 
 /* 
 Read a png containing 8x8 tiles.
@@ -173,7 +168,9 @@ void write_chunk(std::string const& magic, std::vector< T > const& from, std::of
 	header.size = uint32_t(from.size() * sizeof(T));
 
 	to.write(reinterpret_cast<const char*>(&header), sizeof(header));
-	cout << "writing, size is " << from.size() * sizeof(T);
+	
+	cout << "writing, size is " << from.size() * sizeof(T) << "\n";
+	
 	to.write(reinterpret_cast<const char*>(from.data()), from.size() * sizeof(T));
 }
 
