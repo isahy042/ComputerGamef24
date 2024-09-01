@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
 	// * reusing some code from my 672 vulkan renderer spring 2024
 	bool validArgs = false;
 
-	vector<string> filePaths;
+	vector<string> fileNames;
 	vector<string> magics;
 
 	for (int i = 1; i < argc; i++) {
@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
 		if (argument == "-f") { // file
 			while (i + 1 < argc && argv[i + 1][0] != '-') {
 				try {
-					filePaths.push_back(string(argv[i + 1]));
+					fileNames.push_back(string(argv[i + 1]));
 				}
 				catch (const std::exception& e) {
 					std::cerr << e.what() << std::endl;
@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
 			
 		}
 		else if (argument == "-m") {// magic values
-			while (magics.size() < filePaths.size()) {
+			while (magics.size() < fileNames.size()) {
 				if (!validArgs) {
 					cout << "No file or incorrect input order. Use -h to see the help message. \n";
 					exit(1);
@@ -43,14 +43,14 @@ int main(int argc, char *argv[])
 						magics.push_back((string(argv[i + 1]) + string("    ")).substr(0, 4));
 					}
 					catch (const std::exception& e) {
-						std::cerr << "invalid argument." << std::endl;
+						std::cerr << e.what() << std::endl;
 						exit(1);
 					}
 				}
 				else {
 					// "If magic is not provided, first 4 chars of the file name is used"
 					// use corresponding file name for magic value
-					magics.push_back((filePaths[magics.size()] + string("    ")).substr(0, 4));
+					magics.push_back((fileNames[magics.size()] + string("    ")).substr(0, 4));
 				}
 				i++;
 			}
@@ -64,19 +64,46 @@ int main(int argc, char *argv[])
 	}
 
 	// check input correctness
-	if (!validArgs || magics.size() != filePaths.size()) {
+	if (!validArgs || magics.size() != fileNames.size()) {
 		cout << "Invalid argument used. Use -h to see the help message.\n";
 		exit(1);
 	}
 
 	// process the input
 	cout << "Your input: \n";
-	for (int i = 0; i < filePaths.size(); i++) {
-		cout << "File:" << filePaths[i] + " Magic:[" << magics[i] << "]\n";
+	for (int i = 0; i < fileNames.size(); i++) {
+		cout << "File:" << fileNames[i] + " Magic:[" << magics[i] << "]\n";
 	}
 
-	exit(0);
 	// read in the target file
+	for (int i = 0; i < fileNames.size(); i++) {
+		// declare output vector
+		vector<unsigned char> output;
+
+		int w, h;
+		auto img = read_8x8_tile_png(fileNames[i], w, h);
+		
+		int tileIndex = 0;
+
+		// process each tile
+		for (int j = 0; j < h; j += 8) {
+			for (int k = 0; k < w; k += 8) {
+				cout << "Processing tile #" << tileIndex <<":\n";
+				process_8x8_tile(j, k, img, output);
+				tileIndex++;
+			}
+		}
+
+		std::ofstream file;
+		file.open("asset/"+ magics[i]);
+		// save all tiles
+		write_chunk(magics[i], output, &file);
+		file.close();
+
+
+	}
+	// PPU supports 8 palettes
+	save_palette();
 
     
 }
