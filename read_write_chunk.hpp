@@ -1,6 +1,8 @@
 #pragma once
 
 #include <iostream>
+#include <fstream>
+
 #include <vector>
 #include <stdexcept>
 #include <cassert>
@@ -12,7 +14,7 @@
 // |TT...TT| * (sz/sizeof(TT)) <-- enough T structures to make up sz bytes
 
 template< typename T >
-void read_chunk(std::istream &from, std::string const &magic, std::vector< T > *to_) {
+void read_chunk(std::ifstream &from, std::string const &magic, std::vector< T > *to_) {
 	assert(to_);
 	auto &to = *to_;
 

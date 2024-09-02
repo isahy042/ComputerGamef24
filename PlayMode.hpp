@@ -1,10 +1,14 @@
 #include "PPU466.hpp"
 #include "Mode.hpp"
+#include "read_write_chunk.hpp"
+#include "data_path.hpp"
 
 #include <glm/glm.hpp>
 
 #include <vector>
 #include <deque>
+
+using namespace std;
 
 struct PlayMode : Mode {
 	PlayMode();

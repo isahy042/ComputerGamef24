@@ -70,37 +70,67 @@ PlayMode::PlayMode() {
 		0b00000000,
 	};
 
-	//makes the outside of tiles 0-16 solid:
-	ppu.palette_table[0] = {
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-	};
+	// read in the palettes
+	ifstream infile;
+	infile.open(data_path("asset/pale"));
+	vector<unsigned char> palette_output;
+	read_chunk(infile,"pale", &palette_output);
 
-	//makes the center of tiles 0-16 solid:
-	ppu.palette_table[1] = {
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-	};
+	// palette now contains 4 * 4 * P bytes of data
+	assert(palette_output.size() % 16 == 0 && palette_output.size() / 16 <= 8);
 
-	//used for the player:
-	ppu.palette_table[7] = {
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0xff, 0xff, 0x00, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-	};
+	// fill in used palettes
+	for (size_t p = 0; p < palette_output.size() / 16; p++) {
+		for (int i = 0; i < 4; i++) {
+			size_t index = (p * 16) + (i * 4);
+			ppu.palette_table[p][i] = glm::u8vec4(
+				palette_output[index]
+				,palette_output[index+1]
+				,palette_output[index+2]
+				,palette_output[index+3]);
+		}
+	}
 
-	//used for the misc other sprites:
-	ppu.palette_table[6] = {
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		glm::u8vec4(0x88, 0x88, 0xff, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-		glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-	};
+	// unused palettes
+	for (size_t p = palette_output.size(); p < ppu.palette_table.size(); p++) {
+		ppu.palette_table[p] = {
+			glm::u8vec4(0x00, 0x00, 0x00, 0x00),
+			glm::u8vec4(0x00, 0x00, 0x00, 0x00),
+			glm::u8vec4(0x00, 0x00, 0x00, 0x00),
+			glm::u8vec4(0x00, 0x00, 0x00, 0x00),
+		};
+	}
+	////makes the outside of tiles 0-16 solid:
+	//ppu.palette_table[0] = {
+	//	glm::u8vec4(0x00, 0x00, 0x00, 0x00),
+	//	glm::u8vec4(0x00, 0x00, 0x00, 0xff),
+	//	glm::u8vec4(0x00, 0x00, 0x00, 0x00),
+	//	glm::u8vec4(0x00, 0x00, 0x00, 0xff),
+	//};
+
+	////makes the center of tiles 0-16 solid:
+	//ppu.palette_table[1] = {
+	//	glm::u8vec4(0x00, 0x00, 0x00, 0x00),
+	//	glm::u8vec4(0x00, 0x00, 0x00, 0x00),
+	//	glm::u8vec4(0x00, 0x00, 0x00, 0xff),
+	//	glm::u8vec4(0x00, 0x00, 0x00, 0xff),
+	//};
+
+	////used for the player:
+	//ppu.palette_table[7] = {
+	//	glm::u8vec4(0x00, 0x00, 0x00, 0x00),
+	//	glm::u8vec4(0xff, 0xff, 0x00, 0xff),
+	//	glm::u8vec4(0x00, 0x00, 0x00, 0xff),
+	//	glm::u8vec4(0x00, 0x00, 0x00, 0xff),
+	//};
+
+	////used for the misc other sprites:
+	//ppu.palette_table[6] = {
+	//	glm::u8vec4(0x00, 0x00, 0x00, 0x00),
+	//	glm::u8vec4(0x88, 0x88, 0xff, 0xff),
+	//	glm::u8vec4(0x00, 0x00, 0x00, 0xff),
+	//	glm::u8vec4(0x00, 0x00, 0x00, 0x00),
+	//};
 
 }
 
