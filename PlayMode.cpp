@@ -9,128 +9,27 @@
 #include <random>
 
 PlayMode::PlayMode() {
-	//TODO:
-	// you *must* use an asset pipeline of some sort to generate tiles.
-	// don't hardcode them like this!
-	// or, at least, if you do hardcode them like this,
-	//  make yourself a script that spits out the code that you paste in here
-	//   and check that script into your repository.
 
-	//Also, *don't* use these tiles in your game:
+	// read in the tiles
+	// specific to this game: cat cups moon nums txtr
+	// use tiles 0 - 8 as moon
+	set_tiles(string("moon"), string("moon"), 0);
 
-	{ //use tiles 0-16 as some weird dot pattern thing:
-		std::array< uint8_t, 8*8 > distance;
-		for (uint32_t y = 0; y < 8; ++y) {
-			for (uint32_t x = 0; x < 8; ++x) {
-				float d = glm::length(glm::vec2((x + 0.5f) - 4.0f, (y + 0.5f) - 4.0f));
-				d /= glm::length(glm::vec2(4.0f, 4.0f));
-				distance[x+8*y] = uint8_t(std::max(0,std::min(255,int32_t( 255.0f * d ))));
-			}
-		}
-		for (uint32_t index = 0; index < 16; ++index) {
-			PPU466::Tile tile;
-			uint8_t t = uint8_t((255 * index) / 16);
-			for (uint32_t y = 0; y < 8; ++y) {
-				uint8_t bit0 = 0;
-				uint8_t bit1 = 0;
-				for (uint32_t x = 0; x < 8; ++x) {
-					uint8_t d = distance[x+8*y];
-					if (d > t) {
-						bit0 |= (1 << x);
-					} else {
-						bit1 |= (1 << x);
-					}
-				}
-				tile.bit0[y] = bit0;
-				tile.bit1[y] = bit1;
-			}
-			ppu.tile_table[index] = tile;
-		}
-	}
+	// use tiles 9 - 17 as cat
+	set_tiles(string("cat"), string("cat "), 9);
 
-	//use sprite 32 as a "player":
-	ppu.tile_table[32].bit0 = {
-		0b01111110,
-		0b11111111,
-		0b11111111,
-		0b11111111,
-		0b11111111,
-		0b11111111,
-		0b11111111,
-		0b01111110,
-	};
-	ppu.tile_table[32].bit1 = {
-		0b00000000,
-		0b00000000,
-		0b00011000,
-		0b00100100,
-		0b00000000,
-		0b00100100,
-		0b00000000,
-		0b00000000,
-	};
+	// use tiles 18 - 23 as cups
+	set_tiles(string("cups"), string("cups"), 18);
 
-	// read in the palettes
-	ifstream infile;
-	infile.open(data_path("asset/pale"));
-	vector<unsigned char> palette_output;
-	read_chunk(infile,"pale", &palette_output);
+	// use tiles 24 - 29 as texture
+	set_tiles(string("txtr"), string("txtr"), 24);
 
-	// palette now contains 4 * 4 * P bytes of data
-	assert(palette_output.size() % 16 == 0 && palette_output.size() / 16 <= 8);
+	// use tiles 30-39 as nums
+	set_tiles(string("nums"), string("nums"), 30);
 
-	// fill in used palettes
-	for (size_t p = 0; p < palette_output.size() / 16; p++) {
-		for (int i = 0; i < 4; i++) {
-			size_t index = (p * 16) + (i * 4);
-			ppu.palette_table[p][i] = glm::u8vec4(
-				palette_output[index]
-				,palette_output[index+1]
-				,palette_output[index+2]
-				,palette_output[index+3]);
-		}
-	}
-
-	// unused palettes
-	for (size_t p = palette_output.size(); p < ppu.palette_table.size(); p++) {
-		ppu.palette_table[p] = {
-			glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-			glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-			glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-			glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-		};
-	}
-	////makes the outside of tiles 0-16 solid:
-	//ppu.palette_table[0] = {
-	//	glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-	//	glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-	//	glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-	//	glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-	//};
-
-	////makes the center of tiles 0-16 solid:
-	//ppu.palette_table[1] = {
-	//	glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-	//	glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-	//	glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-	//	glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-	//};
-
-	////used for the player:
-	//ppu.palette_table[7] = {
-	//	glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-	//	glm::u8vec4(0xff, 0xff, 0x00, 0xff),
-	//	glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-	//	glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-	//};
-
-	////used for the misc other sprites:
-	//ppu.palette_table[6] = {
-	//	glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-	//	glm::u8vec4(0x88, 0x88, 0xff, 0xff),
-	//	glm::u8vec4(0x00, 0x00, 0x00, 0xff),
-	//	glm::u8vec4(0x00, 0x00, 0x00, 0x00),
-	//};
+	// read in the palettes, name always "pale"
+	// palette contains 4 * 4 * P bytes of data
+	set_palette();
 
 }
 

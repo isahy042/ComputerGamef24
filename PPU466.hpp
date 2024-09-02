@@ -67,6 +67,10 @@ struct PPU466 {
 	//  this is often thought of as a 16x16 grid of tiles.
 	std::array< Tile, 16 * 16 > tile_table;
 
+	//Map between tiles and palette - used when each tile has fixed palette(s)
+	std::array<int, 16 * 16> tile_palette_map;
+
+
 	//Background Layer:
 	// The PPU's background layer is made of 64x60 tiles (512 x 480 pixels).
 	// This is twice the size of the screen, to support scrolling.
