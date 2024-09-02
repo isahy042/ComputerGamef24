@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
 		// process each tile
 		for (int j = 0; j < h; j += 8) {
 			for (int k = 0; k < w; k += 8) {
-				cout << "Processing tile #" << tileIndex <<":\n";
+				cout << "tile #" << tileIndex <<" ";
 				process_8x8_tile(j, k, img, output);
 				tileIndex++;
 			}
@@ -97,6 +97,7 @@ int main(int argc, char *argv[])
 		std::ofstream file;
 		file.open("asset/"+ magics[i]);
 		// save all tiles
+		cout << magics[i] << " populated up to palette " << next_empty_palette <<"\n";
 		write_chunk(magics[i], output, &file);
 		file.close();
 
@@ -104,7 +105,7 @@ int main(int argc, char *argv[])
 	
 	// put all palettes into one array
 	vector<unsigned char> output_palette;
-	for (int i = 0; i < emptyPaletteIndex; i++) {
+	for (int i = 0; i < next_empty_palette; i++) {
 		vector<vector<unsigned char>> palette = palettes[i];
 		for (int color = 0; color < PALETTE_SIZE; color++) {
 			output_palette.push_back(palette[color][0]);

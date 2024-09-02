@@ -6,6 +6,7 @@
 #include <fstream>
 #include <vector>
 #include <set>
+#include <algorithm>
 #include <stdexcept>
 #include <cassert>
 
@@ -24,9 +25,41 @@ bool cmp_color(vector<unsigned char> &c1, vector<unsigned char>& c2) {
 		c1[3] == c2[3]);
 }
 
-// array of 8 palettes
-vector<vector<vector<unsigned char>>> palettes;
-int emptyPaletteIndex = 0;
+// array of 8 palettes, 4 colors in each, all initialized to {0,0,0,0}
+vector<vector<vector<unsigned char>>> palettes(MAX_PALETTES, vector<vector<unsigned char>>(PALETTE_SIZE, vector<unsigned char>(4, 0)));
+vector<int>palette_color_index(8, 1); // in true nintendo fashion, setting the first one to transparent!
+int next_empty_palette = 0;
+
+
+/*
+	Given a palette and a set of colors, determine whether its possible to union them without exeeding the palette size
+*/
+bool palette_overlap(int p, set<vector<unsigned char>>& colors) {
+	int spots_needed = 0;
+	vector<vector<unsigned char>> palette = palettes[p];
+	vector<vector<unsigned char>> new_colors;
+
+	for (auto c : colors) {
+		// if a color is not already in the palette, we would need a spot for it
+		if (find(palette.begin(), palette.end(), c) == palette.end()) {
+			spots_needed++;
+			new_colors.push_back(c);
+		}
+	}
+	
+
+	// if there are enough spots, add the colors into the palette
+	if (spots_needed <= PALETTE_SIZE - palette_color_index[p]) {
+		for (auto c : new_colors) {
+			assert(palette_color_index[p] < PALETTE_SIZE);
+			palettes[p][palette_color_index[p]] = c;
+			palette_color_index[p]++;
+		}
+		return true;
+	}
+
+	return false;
+}
 
 /* 
 Process an 8x8 tile by matching it to a palette (or creating a new one if necessary)
@@ -43,52 +76,63 @@ void process_8x8_tile(int i, int j, vector<vector<vector<unsigned char>>> &img, 
 		}
 		if (colors.size() == PALETTE_SIZE) break;
 	}
-	vector<vector<unsigned char>> currentPalette = vector(colors.begin(), colors.end());
-	for (int ii = 0; ii = PALETTE_SIZE - currentPalette.size(); ii++) {
-		currentPalette.push_back({ 0,0,0,0 });
-	}
 
-	// compare exisitng palettes
-	int currentPaletteIndex = -1;
-	for (int p = 0; p < emptyPaletteIndex; p++) {
-		if (palettes[p] == currentPalette) {
-			currentPaletteIndex = p;
+	// compare exisitng palettes by seeing if colors is a subset of any of them
+	int current_palette_index = -1;
+	for (int p = 0; p < next_empty_palette; p++) {
+		if (palette_overlap(p, colors)) {
+			current_palette_index = p;
 			break; 
-		}
+		} 
 	}
-
+	
 	// make new palette when necessary
-	if (currentPaletteIndex == -1) {
-		currentPaletteIndex = emptyPaletteIndex;
-		emptyPaletteIndex++;
-		if (emptyPaletteIndex >= MAX_PALETTES) {
-			emptyPaletteIndex = MAX_PALETTES - 1;
-			cout << "WARNING: Overwriting palettes while parsing";
+	if (current_palette_index == -1) {
+
+		if (next_empty_palette >= MAX_PALETTES) {
+			next_empty_palette = MAX_PALETTES - 1;
+			cout << "WARNING: Overwriting palettes while parsing, resetting last palette \n";
+			palette_color_index[next_empty_palette] = 1;
 		}
-		else {
-			palettes.push_back(currentPalette);
+
+		current_palette_index = next_empty_palette;
+		next_empty_palette++;
+	
+
+		for (auto c : colors) {
+			assert(palette_color_index[current_palette_index] < PALETTE_SIZE);
+			if (c[3] == 0) continue; // we don't have to add transparent
+			palettes[current_palette_index][palette_color_index[current_palette_index]] = c;
+			palette_color_index[current_palette_index]++;
 		}
 	}
 
-	/*cout << "Palette Index " << currentPaletteIndex << ", with colors: \n" 
-		<< palettes[currentPaletteIndex][0][0] << " " << palettes[currentPaletteIndex][0][1] << " " 
-		<< palettes[currentPaletteIndex][0][2] << " " << palettes[currentPaletteIndex][0][3] << " \n"
-		<< palettes[currentPaletteIndex][1][0] << " " << palettes[currentPaletteIndex][1][1] << " " 
-		<< palettes[currentPaletteIndex][1][2] << " " << palettes[currentPaletteIndex][1][3] << " \n"
-		<< palettes[currentPaletteIndex][2][0] << " " << palettes[currentPaletteIndex][2][1] << " " 
-		<< palettes[currentPaletteIndex][2][2] << " " << palettes[currentPaletteIndex][2][3] << " \n"
-		<< palettes[currentPaletteIndex][3][0] << " " << palettes[currentPaletteIndex][3][1] << " " 
-		<< palettes[currentPaletteIndex][3][2] << " " << palettes[currentPaletteIndex][3][3] << " \n";*/
+	cout << "palette " << current_palette_index << " \n";
+
+	vector<vector<unsigned char>> currentPalette = palettes[current_palette_index];
+
+	//cout << "Palette Index " << current_palette_index << ", with colors: \n" 
+	//	<<int( palettes[current_palette_index][0][0] )<< " " << int(palettes[current_palette_index][0][1]) << " "
+	//	<< int(palettes[current_palette_index][0][2] )<< " " << int(palettes[current_palette_index][0][3] )<< " \n"
+	//	<< int(palettes[current_palette_index][1][0] )<< " " << int(palettes[current_palette_index][1][1]) << " "
+	//	<< int(palettes[current_palette_index][1][2] )<< " " << int(palettes[current_palette_index][1][3] )<< " \n"
+	//	<< int(palettes[current_palette_index][2][0] )<< " " << int(palettes[current_palette_index][2][1] )<< " "
+	//	<< int(palettes[current_palette_index][2][2]) << " " << int(palettes[current_palette_index][2][3] )<< " \n"
+	//	<< int(palettes[current_palette_index][3][0] )<< " " << int(palettes[current_palette_index][3][1] )<< " "
+	//	<< int(palettes[current_palette_index][3][2]) << " " << int(palettes[current_palette_index][3][3] )<< " \n";
 
 	// push correct output onto output vector
+	// first push the palette index
+	output.push_back(current_palette_index);
+
 	for (int ii = i; ii < i + 8; ii++) {
 		for (int jj = j; jj < j + 8; jj++) {
 
 			/*cout << "Pixel" <<ii<<" "<<jj<<" with colors : \n"
-				<< img[ii][jj][0] << " " << img[ii][jj][1] << " "
-				<< img[ii][jj][2] << " " << img[ii][jj][3] << " \n";*/
+				<< int(img[ii][jj][0]) << " " << int(img[ii][jj][1]) << " "
+				<< int(img[ii][jj][2] )<< " " << int(img[ii][jj][3] )<< " \n";*/
 
-			if (cmp_color(img[ii][jj],currentPalette[0])) {
+			if (cmp_color(img[ii][jj], currentPalette[0])) {
 				output.push_back(0); output.push_back(0);
 			}
 			else if (cmp_color(img[ii][jj],currentPalette[1])) {
@@ -107,6 +151,7 @@ void process_8x8_tile(int i, int j, vector<vector<vector<unsigned char>>> &img, 
 	}
 
 }
+
 
 
 /* 
