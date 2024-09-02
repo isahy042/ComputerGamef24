@@ -121,6 +121,31 @@ struct PlayMode : Mode {
 	//----- Runtime Helper Functions -----
 	// set position of cat
 	void set_cat() {
+		// placing tiles 9 - 17, sprite 4-10
+		uint8_t x = int8_t(player_at.x);
+		uint8_t y = int8_t(player_at.y);
+
+		for (uint8_t i = 0; i < 3; i++) {
+
+			uint8_t index = 15 - (i * 3);
+			ppu.sprites[4 + (i * 2)].x = x;
+			ppu.sprites[4 + (i * 2)].y = y;
+			ppu.sprites[4 + (i * 2)].index = index;
+			ppu.sprites[4 + (i * 2)].attributes = ((uint8_t)ppu.tile_palette_map[index]);
+
+			ppu.sprites[4 + (i * 2) + 1].x = x+8;
+			ppu.sprites[4 + (i * 2) + 1].y = y;
+			ppu.sprites[4 + (i * 2) + 1].index = index+1;
+			ppu.sprites[4 + (i * 2) + 1].attributes = ((uint8_t)ppu.tile_palette_map[index+1]);
+
+			y += 8;
+		}
+
+		ppu.sprites[10].x = int8_t(player_at.x) + 2;
+		ppu.sprites[10].y = int8_t(player_at.y) + 8;
+		ppu.sprites[10].index = 11;
+		ppu.sprites[10].attributes = ((uint8_t)ppu.tile_palette_map[11]);
+		
 	}
 
 	void spawn_cup() {

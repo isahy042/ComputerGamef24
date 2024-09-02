@@ -73,6 +73,9 @@ PlayMode::PlayMode() {
 			ppu.background[x + PPU466::BackgroundWidth * y] = background;
 		}
 	}
+
+	player_at.y = 65; // cat has fixed horizontal path
+	player_at.x = 100;
 }
 
 PlayMode::~PlayMode() {
@@ -116,9 +119,9 @@ void PlayMode::update(float elapsed) {
 	time -= elapsed;
 
 	constexpr float PlayerSpeed = 30.0f;
-	if (left.pressed) player_at.x -= PlayerSpeed * elapsed;
-	if (right.pressed) player_at.x += PlayerSpeed * elapsed;
-	if (space.pressed) player_at.x += PlayerSpeed * elapsed;
+	if (left.pressed) player_at.x = max(player_at.x - (PlayerSpeed * elapsed), 0.f);
+	if (right.pressed) player_at.x = min(player_at.x + (PlayerSpeed * elapsed), 240.f);
+	if (space.pressed) try_push_cup();
 
 	//reset button press counters:
 	left.downs = 0;
@@ -129,14 +132,15 @@ void PlayMode::update(float elapsed) {
 
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	//--- set ppu state based on game state ---
-
+	// 
 	//background scroll:
 	ppu.background_position.x = int32_t(-0.5f * player_at.x);
-	ppu.background_position.y = int32_t(-0.5f * player_at.y);
+	ppu.background_position.y = 0;
 
 	//uint8_t bg_priority = 1 << 7;
 	uint8_t num_attribute = ((uint8_t)ppu.tile_palette_map[30]);
-	// update timer - left of screen
+
+	// update timer - left of screen 0-1
 	string time_str = to_string(time);
 	ppu.sprites[0].x = 12;
 	ppu.sprites[0].y = 225;
@@ -147,7 +151,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	ppu.sprites[1].index = 30 + ((int)ceil(time) % 10);
 	ppu.sprites[1].attributes = num_attribute;
 
-	// score
+	// score 2-3
 	ppu.sprites[2].x = 220;
 	ppu.sprites[2].y = 225;
 	ppu.sprites[2].index = 30 + ((score / 10) % 10);
@@ -157,8 +161,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	ppu.sprites[3].index = 30 + (score % 10);
 	ppu.sprites[3].attributes = num_attribute;
 
-
-	//////player sprite:
+	// player sprite 4-10
+	set_cat();
 	//ppu.sprites[1].x = int8_t(player_at.x);
 	//ppu.sprites[0].y = int8_t(player_at.y);
 	//ppu.sprites[0].index = ;
