@@ -26,7 +26,7 @@ struct PlayMode : Mode {
 	struct Button {
 		uint8_t downs = 0;
 		uint8_t pressed = 0;
-	} left, right, down, up;
+	} left, right, space;
 
 	//some weird background animation:
 	float background_fade = 0.0f;
@@ -67,9 +67,9 @@ struct PlayMode : Mode {
 				string bit0 ="";
 				string bit1 = "";
 				for (int k = 0; k < 8; k++) {
-					bit0 += (char)(int(tile_output[vector_index]) + '0');
-					vector_index++;
 					bit1 += (char)(int(tile_output[vector_index]) + '0');
+					vector_index++;
+					bit0 += (char)(int(tile_output[vector_index]) + '0');
 					vector_index++;
 				}
 
@@ -94,19 +94,20 @@ struct PlayMode : Mode {
 		assert(palette_output.size() % 16 == 0 && palette_output.size() / 16 <= 8);
 
 		// fill in used palettes
+		size_t index = 0;
 		for (size_t p = 0; p < palette_output.size() / 16; p++) {
 			for (int i = 0; i < 4; i++) {
-				size_t index = (p * 16) + (i * 4);
 				ppu.palette_table[p][i] = glm::u8vec4(
-					palette_output[index]
-					, palette_output[index + 1]
-					, palette_output[index + 2]
-					, palette_output[index + 3]);
+					int(palette_output[index])
+					, int(palette_output[index+1])
+					, int(palette_output[index+2])
+					, int(palette_output[index+3]));
+				index += 4;
 			}
 		}
 
 		// unused palettes
-		for (size_t p = palette_output.size(); p < ppu.palette_table.size(); p++) {
+		for (size_t p = palette_output.size() / 16; p < ppu.palette_table.size(); p++) {
 			ppu.palette_table[p] = {
 				glm::u8vec4(0x00, 0x00, 0x00, 0x00),
 				glm::u8vec4(0x00, 0x00, 0x00, 0x00),

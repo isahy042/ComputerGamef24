@@ -8,3 +8,6 @@ Root
 │       CMakeLists.txt
 │       MyClass.cpp
 │       main.cpp
+
+
+AssetPipeline -f cat.png surface.png integers.png moon.png cups.png -m cat txtr nums

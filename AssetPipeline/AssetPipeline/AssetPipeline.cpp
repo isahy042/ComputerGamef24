@@ -107,7 +107,13 @@ int main(int argc, char *argv[])
 	vector<unsigned char> output_palette;
 	for (int i = 0; i < next_empty_palette; i++) {
 		vector<vector<unsigned char>> palette = palettes[i];
+		cout << "Palette " << i << ", with colors: \n";
+
 		for (int color = 0; color < PALETTE_SIZE; color++) {
+
+			cout << int(palette[color][0]) << " " << int(palette[color][1]) << " "
+				<< int(palette[color][2]) << " " << int(palette[color][3]) << " \n";
+
 			output_palette.push_back(palette[color][0]);
 			output_palette.push_back(palette[color][1]);
 			output_palette.push_back(palette[color][2]);

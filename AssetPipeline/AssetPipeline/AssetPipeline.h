@@ -47,7 +47,6 @@ bool palette_overlap(int p, set<vector<unsigned char>>& colors) {
 		}
 	}
 	
-
 	// if there are enough spots, add the colors into the palette
 	if (spots_needed <= PALETTE_SIZE - palette_color_index[p]) {
 		for (auto c : new_colors) {
@@ -125,8 +124,8 @@ void process_8x8_tile(int i, int j, vector<vector<vector<unsigned char>>> &img, 
 	// first push the palette index
 	output.push_back(current_palette_index);
 
-	for (int ii = i; ii < i + 8; ii++) {
-		for (int jj = j; jj < j + 8; jj++) {
+	for (int ii = i + 7; ii >= i; ii--) {
+		for (int jj = j + 7; jj >= j ; jj--) {
 
 			/*cout << "Pixel" <<ii<<" "<<jj<<" with colors : \n"
 				<< int(img[ii][jj][0]) << " " << int(img[ii][jj][1]) << " "
