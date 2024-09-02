@@ -38,7 +38,7 @@ struct PlayMode : Mode {
 
 	PPU466 ppu;
 
-	//----- Helper Functions -----
+	//----- Asset Loading Helper Functions -----
 	void set_tiles(string file, string magic, int start_tile) {
 
 		ifstream infile;
@@ -118,4 +118,17 @@ struct PlayMode : Mode {
 
 	}
 
+	//----- Runtime Helper Functions -----
+	// set position of cat
+	void set_cat() {
+	}
+
+	void spawn_cup() {
+	}
+
+	void try_push_cup() {
+	}
+
+	int score = 0;
+	float time = 60.f;
 };

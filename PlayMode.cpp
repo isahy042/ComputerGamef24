@@ -113,6 +113,8 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 
 void PlayMode::update(float elapsed) {
 
+	time -= elapsed;
+
 	constexpr float PlayerSpeed = 30.0f;
 	if (left.pressed) player_at.x -= PlayerSpeed * elapsed;
 	if (right.pressed) player_at.x += PlayerSpeed * elapsed;
@@ -128,24 +130,38 @@ void PlayMode::update(float elapsed) {
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	//--- set ppu state based on game state ---
 
-
-	////tilemap gets recomputed every frame as some weird plasma thing:
-	////NOTE: don't do this in your game! actually make a map or something :-)
-	//for (uint32_t y = 0; y < PPU466::BackgroundHeight; ++y) {
-	//	for (uint32_t x = 0; x < PPU466::BackgroundWidth; ++x) {
-	//		//TODO: make weird plasma thing
-	//		ppu.background[x+PPU466::BackgroundWidth*y] = ((x+y)%16);
-	//	}
-	//}
-
 	//background scroll:
 	ppu.background_position.x = int32_t(-0.5f * player_at.x);
 	ppu.background_position.y = int32_t(-0.5f * player_at.y);
 
-	//player sprite:
-	//ppu.sprites[0].x = int8_t(player_at.x);
+	//uint8_t bg_priority = 1 << 7;
+	uint8_t num_attribute = ((uint8_t)ppu.tile_palette_map[30]);
+	// update timer - left of screen
+	string time_str = to_string(time);
+	ppu.sprites[0].x = 12;
+	ppu.sprites[0].y = 225;
+	ppu.sprites[0].index = 30 + (((int)ceil(time) / 10 ) % 10);
+	ppu.sprites[0].attributes = num_attribute;
+	ppu.sprites[1].x = 19;
+	ppu.sprites[1].y = 225;
+	ppu.sprites[1].index = 30 + ((int)ceil(time) % 10);
+	ppu.sprites[1].attributes = num_attribute;
+
+	// score
+	ppu.sprites[2].x = 220;
+	ppu.sprites[2].y = 225;
+	ppu.sprites[2].index = 30 + ((score / 10) % 10);
+	ppu.sprites[2].attributes = num_attribute;
+	ppu.sprites[3].x = 228;
+	ppu.sprites[3].y = 225;
+	ppu.sprites[3].index = 30 + (score % 10);
+	ppu.sprites[3].attributes = num_attribute;
+
+
+	//////player sprite:
+	//ppu.sprites[1].x = int8_t(player_at.x);
 	//ppu.sprites[0].y = int8_t(player_at.y);
-	//ppu.sprites[0].index = 32;
+	//ppu.sprites[0].index = ;
 	//ppu.sprites[0].attributes = 7;
 
 	////some other misc sprites:
