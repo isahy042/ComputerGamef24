@@ -106,9 +106,9 @@ PlayMode::PlayMode() {
 	player_at.x = 120;
 
 	// some random number seed generators
-	spawn_cup(0.11f);
-	spawn_cup(0.22f);
-	spawn_cup(0.33f);
+	spawn_cup(0.11111f);
+	spawn_cup(0.22222f);
+	spawn_cup(0.33333f);
 }
 
 PlayMode::~PlayMode() {
@@ -149,20 +149,21 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 
 void PlayMode::update(float elapsed) {
 
+	if (time < 0) return; 
+
 	int second1 = (int)floor(time);
 	time -= elapsed;
 
 	int second2 = (int)floor(time);
-	if ((second1 != second2) && (second1 % 4 == 0)) spawn_cup(elapsed);
+	if ((second1 != second2) && ((second1 % 3 == 0) || (second1 % 3 == 1))) {
+		spawn_cup(elapsed); 
+	}
 
 	drop_cups(elapsed);
 
 	if (left.pressed) player_at.x = max(player_at.x - (player_speed * elapsed), 50.f);
 	if (right.pressed) player_at.x = min(player_at.x + (player_speed * elapsed), 190.f);
 	if (space.pressed) try_push_cup();
-
-	// TODO: lower the dropping cups, recycle if hit the floor
-	
 
 	//reset button press counters:
 	left.downs = 0;

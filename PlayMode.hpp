@@ -46,7 +46,9 @@ struct PlayMode : Mode {
 		infile.close();
 
 		int tile_size = ((8 * 8 * 2) + 1);
-		assert(tile_output.size() % tile_size == 0);
+		if (!(tile_output.size() % tile_size == 0)) {
+			cerr << "tile file error" << endl;
+		}
 
 		size_t total_tiles = tile_output.size() / tile_size;
 
@@ -89,7 +91,9 @@ struct PlayMode : Mode {
 		read_chunk(infile, "pale", &palette_output);
 		infile.close();
 
-		assert(palette_output.size() % 16 == 0 && palette_output.size() / 16 <= 8);
+		if (!(palette_output.size() % 16 == 0 && palette_output.size() / 16 <= 8)) {
+			cerr << "palette file error" << endl;
+		}
 
 		// fill in used palettes
 		size_t index = 0;
@@ -161,9 +165,13 @@ struct PlayMode : Mode {
 		srand((unsigned int)(elapsed * (2 << 25)));
 
 		int random_location = rand() % has_cup.size();
-		int random_type = rand() % 3;
+		int random_type = rand() % 13;
 
-		// TODO: randomize it
+		// 0-7 small, 8-11 medium, 12 potion
+		if (random_type == 12) random_type = 2;
+		else if (random_type <= 7) random_type = 1;
+		else random_type = 0;
+
 		for (int i = 0; i < has_cup.size(); i++) {
 			random_location = random_location % has_cup.size();
 			if (has_cup[random_location] < 0) {
@@ -224,15 +232,12 @@ struct PlayMode : Mode {
 
 	void try_push_cup() {
 
-		// TODO: push thing off
-
 		// get left most index
 		int index = ((int)player_at.x - 50) / 8;
 		int tiles_covered = (((int)player_at.x - 50) % 8 == 0) ? 2 : 3;
 
 		for (int i = index; i < index + tiles_covered; i++) {
 			if (has_cup[i] > 0) {
-				cout << "pushed at " << i;
 				if (has_cup[i] < 40) score += 2;
 				else if (has_cup[i] >= 55) player_speed += 10.f;
 				else score += 1;
@@ -240,12 +245,11 @@ struct PlayMode : Mode {
 				has_cup[i] = -1;
 			}
 		}
-
 	}
 
+	// decrease y of all currently dropping cups
 	void drop_cups(float elapsed) {
 		for (auto cup : dropping_cups) {
-			cout << "dropping " << cup;
 			if (cup < 40 || cup >= 55) {
 				ppu.sprites[cup].y -= 1;
 				ppu.sprites[cup + 1].y -= 1;
@@ -256,8 +260,6 @@ struct PlayMode : Mode {
 				}
 			}
 			else {
-				cout << " to " << ppu.sprites[cup].y << "\n";
-
 				ppu.sprites[cup].y -= 1;
 				if (ppu.sprites[cup].y <= 4) {
 					ppu.sprites[cup].y = 250;
@@ -268,7 +270,7 @@ struct PlayMode : Mode {
 	}
 
 	int score = 0;
-	float time = 60.f;
+	float time = 30.f;
 	float player_speed = 20.f;
 
 };
