@@ -104,6 +104,11 @@ PlayMode::PlayMode() {
 
 	player_at.y = 55; // cat has fixed horizontal path
 	player_at.x = 120;
+
+	// some random number seed generators
+	spawn_cup(0.11f);
+	spawn_cup(0.22f);
+	spawn_cup(0.33f);
 }
 
 PlayMode::~PlayMode() {
@@ -148,13 +153,16 @@ void PlayMode::update(float elapsed) {
 	time -= elapsed;
 
 	int second2 = (int)floor(time);
-	if ((second1 != second2) && (second1 % 3 == 0)) spawn_cup(elapsed);
+	if ((second1 != second2) && (second1 % 4 == 0)) spawn_cup(elapsed);
+
+	drop_cups(elapsed);
 
 	if (left.pressed) player_at.x = max(player_at.x - (player_speed * elapsed), 50.f);
 	if (right.pressed) player_at.x = min(player_at.x + (player_speed * elapsed), 190.f);
 	if (space.pressed) try_push_cup();
 
 	// TODO: lower the dropping cups, recycle if hit the floor
+	
 
 	//reset button press counters:
 	left.downs = 0;
@@ -196,20 +204,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 	// player sprite 4-10
 	set_cat();
-	//ppu.sprites[1].x = int8_t(player_at.x);
-	//ppu.sprites[0].y = int8_t(player_at.y);
-	//ppu.sprites[0].index = ;
-	//ppu.sprites[0].attributes = 7;
-
-	////some other misc sprites:
-	//for (uint32_t i = 1; i < 63; ++i) {
-	//	float amt = (i + 2.0f * background_fade) / 62.0f;
-	//	ppu.sprites[i].x = int8_t(0.5f * PPU466::ScreenWidth + std::cos( 2.0f * M_PI * amt * 5.0f + 0.01f * player_at.x) * 0.4f * PPU466::ScreenWidth);
-	//	ppu.sprites[i].y = int8_t(0.5f * PPU466::ScreenHeight + std::sin( 2.0f * M_PI * amt * 3.0f + 0.01f * player_at.y) * 0.4f * PPU466::ScreenWidth);
-	//	ppu.sprites[i].index = 32;
-	//	ppu.sprites[i].attributes = 6;
-	//	if (i % 2) ppu.sprites[i].attributes |= 0x80; //'behind' bit
-	//}
 
 	//--- actually draw ---
 	ppu.draw(drawable_size);

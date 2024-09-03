@@ -6,6 +6,7 @@
 #include <glm/glm.hpp>
 
 #include <vector>
+#include <set>
 #include <string>
 #include <deque>
 
@@ -157,19 +158,28 @@ struct PlayMode : Mode {
 		uint8_t spawn_at = 0;
 		int spawn_type = -1;
 
+		srand((unsigned int)(elapsed * (2 << 25)));
+
+		int random_location = rand() % has_cup.size();
+		int random_type = rand() % 3;
+
 		// TODO: randomize it
 		for (int i = 0; i < has_cup.size(); i++) {
-			if (has_cup[i] < 0) {
-				spawn_at = (uint8_t)i;
+			random_location = random_location % has_cup.size();
+			if (has_cup[random_location] < 0) {
+				spawn_at = (uint8_t)random_location;
 				// decide spawn type
 				for (int type = 0; type < 3; type++) {
-					if (cup_storage[type] >= 0) {
-						spawn_type = (uint8_t)type;
+					random_type = random_type % 3;
+					if (cup_storage[random_type] >= 0) {
+						spawn_type = (uint8_t)random_type;
 						break;
 					}
+					random_type++;
 				}
 				break;
 			}
+			random_location++;
 		}
 
 		// sprite index
@@ -210,39 +220,55 @@ struct PlayMode : Mode {
 
 	}
 
+	set<int> dropping_cups;
+
 	void try_push_cup() {
 
 		// TODO: push thing off
-		/*
+
 		// get left most index
-		int index = ((int)player_at.x - 50) % 8);
-		index = (((int)player_at.x - 50) - index) / 8;
-		for (int i = index; i < index + 3; i++) {
-			if (has_cup[i] != 0) {
-				switch (spawn_type) {
-				case 0:
+		int index = ((int)player_at.x - 50) / 8;
+		int tiles_covered = (((int)player_at.x - 50) % 8 == 0) ? 2 : 3;
 
-					break;
+		for (int i = index; i < index + tiles_covered; i++) {
+			if (has_cup[i] > 0) {
+				cout << "pushed at " << i;
+				if (has_cup[i] < 40) score += 2;
+				else if (has_cup[i] >= 55) player_speed += 10.f;
+				else score += 1;
+				dropping_cups.insert(has_cup[i]);
+				has_cup[i] = -1;
+			}
+		}
 
-				case 1:
+	}
 
-					break;
-
-				case 2:
-
-					break;
-					has_cup[i] = 0;
+	void drop_cups(float elapsed) {
+		for (auto cup : dropping_cups) {
+			cout << "dropping " << cup;
+			if (cup < 40 || cup >= 55) {
+				ppu.sprites[cup].y -= 1;
+				ppu.sprites[cup + 1].y -= 1;
+				if (ppu.sprites[cup + 1].y <= 4) {
+					ppu.sprites[cup].y = 250;
+					ppu.sprites[cup + 1].y = 250;
+					dropping_cups.erase(cup);
 				}
 			}
-		}*/
+			else {
+				cout << " to " << ppu.sprites[cup].y << "\n";
 
+				ppu.sprites[cup].y -= 1;
+				if (ppu.sprites[cup].y <= 4) {
+					ppu.sprites[cup].y = 250;
+					dropping_cups.erase(cup);
+				}
+			}
+		}
 	}
 
 	int score = 0;
 	float time = 60.f;
 	float player_speed = 20.f;
 
-	float drop_speed = 30.f;
-
-	
 };

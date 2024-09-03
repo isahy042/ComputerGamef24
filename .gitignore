@@ -94,3 +94,6 @@ AssetPipeline/AssetPipeline/.vs/AssetPipeline/v17/Solution.VC.db
 .vs/my-game1/v17/ipch/AutoPCH/ddfc9af0f9294cf9/DATA_PATH.ipch
 .vs/my-game1/FileContentIndex/39ce6789-ec83-450c-ac9b-1f9a1509254d.vsidx
 *.vsidx
+.vs/VSWorkspaceState.json
+.vs/my-game1/v17/ipch/AutoPCH/c5e7fa1ed7207178/ASSETPIPELINE.ipch
+.vs/my-game1/v17/ipch/AutoPCH/ce4d562559a1f641/MAIN.ipch
