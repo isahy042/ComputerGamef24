@@ -58,7 +58,7 @@ PlayMode::PlayMode() {
 		// hardcode in relevant background indices
 		uint16_t tile_index = 3;// normal night
 
-		for (uint32_t x = 20; x <= 25; x++) {
+		for (uint32_t x = 14; x <= 30; x++) {
 			if ((x == 22) && (y == 24)) tile_index = 0;
 			else if ((x == 23) && (y == 24)) tile_index = 1;
 			else if ((x == 24) && (y == 24)) tile_index = 2;
@@ -74,8 +74,36 @@ PlayMode::PlayMode() {
 		}
 	}
 
-	player_at.y = 65; // cat has fixed horizontal path
-	player_at.x = 100;
+	/* Set cups using sprite 20 - 60 */
+	// starting at x = 50, about 18 slots for cups
+	has_cup = vector<int>(18, -1);
+
+	for (int i = 20; i < 40; i += 2) {
+		ppu.sprites[i].index = 18;
+		ppu.sprites[i].attributes = ((uint8_t)ppu.tile_palette_map[18]);
+		ppu.sprites[i+1].index = 21;
+		ppu.sprites[i + 1].attributes = ((uint8_t)ppu.tile_palette_map[21]);
+	}
+	cup_storage.push_back(10-1);
+
+	for (int i = 40; i < 55; i ++) {
+		ppu.sprites[i].index = 19;
+		ppu.sprites[i].attributes = ((uint8_t)ppu.tile_palette_map[19]);
+	}
+	cup_storage.push_back(15-1);
+
+	for (int i = 55; i < 61; i += 2) {
+		ppu.sprites[i].index = 20;
+		ppu.sprites[i].attributes = ((uint8_t)ppu.tile_palette_map[20]);
+		ppu.sprites[i + 1].index = 23;
+		ppu.sprites[i + 1].attributes = ((uint8_t)ppu.tile_palette_map[23]);
+	}
+	cup_storage.push_back(3-1);
+
+
+
+	player_at.y = 55; // cat has fixed horizontal path
+	player_at.x = 120;
 }
 
 PlayMode::~PlayMode() {
@@ -116,12 +144,17 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 
 void PlayMode::update(float elapsed) {
 
+	int second1 = (int)floor(time);
 	time -= elapsed;
 
-	constexpr float PlayerSpeed = 30.0f;
-	if (left.pressed) player_at.x = max(player_at.x - (PlayerSpeed * elapsed), 0.f);
-	if (right.pressed) player_at.x = min(player_at.x + (PlayerSpeed * elapsed), 240.f);
+	int second2 = (int)floor(time);
+	if ((second1 != second2) && (second1 % 3 == 0)) spawn_cup(elapsed);
+
+	if (left.pressed) player_at.x = max(player_at.x - (player_speed * elapsed), 50.f);
+	if (right.pressed) player_at.x = min(player_at.x + (player_speed * elapsed), 190.f);
 	if (space.pressed) try_push_cup();
+
+	// TODO: lower the dropping cups, recycle if hit the floor
 
 	//reset button press counters:
 	left.downs = 0;

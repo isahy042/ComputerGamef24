@@ -28,9 +28,6 @@ struct PlayMode : Mode {
 		uint8_t pressed = 0;
 	} left, right, space;
 
-	//some weird background animation:
-	float background_fade = 0.0f;
-
 	//player position:
 	glm::vec2 player_at = glm::vec2(0.0f);
 
@@ -119,6 +116,7 @@ struct PlayMode : Mode {
 	}
 
 	//----- Runtime Helper Functions -----
+	
 	// set position of cat
 	void set_cat() {
 		// placing tiles 9 - 17, sprite 4-10
@@ -133,7 +131,7 @@ struct PlayMode : Mode {
 			ppu.sprites[4 + (i * 2)].index = index;
 			ppu.sprites[4 + (i * 2)].attributes = ((uint8_t)ppu.tile_palette_map[index]);
 
-			ppu.sprites[4 + (i * 2) + 1].x = x+8;
+			ppu.sprites[4 + (i * 2) + 1].x = x + 8;
 			ppu.sprites[4 + (i * 2) + 1].y = y;
 			ppu.sprites[4 + (i * 2) + 1].index = index+1;
 			ppu.sprites[4 + (i * 2) + 1].attributes = ((uint8_t)ppu.tile_palette_map[index+1]);
@@ -148,12 +146,103 @@ struct PlayMode : Mode {
 		
 	}
 
-	void spawn_cup() {
+	// spawn cups
+	vector<int> has_cup;
+	vector<int> cup_storage;
+
+	uint8_t cup_y = 60;
+
+	void spawn_cup(float elapsed) {
+
+		uint8_t spawn_at = 0;
+		int spawn_type = -1;
+
+		// TODO: randomize it
+		for (int i = 0; i < has_cup.size(); i++) {
+			if (has_cup[i] < 0) {
+				spawn_at = (uint8_t)i;
+				// decide spawn type
+				for (int type = 0; type < 3; type++) {
+					if (cup_storage[type] >= 0) {
+						spawn_type = (uint8_t)type;
+						break;
+					}
+				}
+				break;
+			}
+		}
+
+		// sprite index
+		if (spawn_type < 0) return;
+		int index = cup_storage[spawn_type];
+
+		switch (spawn_type) {
+		case 0:
+			ppu.sprites[20 + (2 * index)].x = 50 + (spawn_at * 8);
+			ppu.sprites[20 + (2 * index)].y = cup_y;
+			ppu.sprites[20 + 1 + (2 * index)].x = 50 + (spawn_at * 8);
+			ppu.sprites[20 + 1 + (2 * index)].y = cup_y - 8;
+			cup_storage[spawn_type]--;
+			has_cup[spawn_at] = 20 + (2 * index);
+
+			break;
+
+		case 1:
+			ppu.sprites[40 + index].x = 50 + (spawn_at * 8);
+			ppu.sprites[40 + index].y = cup_y - 8;
+			cup_storage[spawn_type]--;
+			has_cup[spawn_at] = 40 + index;
+
+			break;
+
+		case 2:
+			ppu.sprites[55 + (2 * index)].x = 50 + (spawn_at * 8);
+			ppu.sprites[55 + (2 * index)].y = cup_y;
+			ppu.sprites[55 + 1 + (2 * index)].x = 50 + (spawn_at * 8);
+			ppu.sprites[55 + 1 + (2 * index)].y = cup_y - 8;
+			cup_storage[spawn_type]--;
+			has_cup[spawn_at] = 55 + (2 * index);
+
+			break;
+		}
+
+
+
 	}
 
 	void try_push_cup() {
+
+		// TODO: push thing off
+		/*
+		// get left most index
+		int index = ((int)player_at.x - 50) % 8);
+		index = (((int)player_at.x - 50) - index) / 8;
+		for (int i = index; i < index + 3; i++) {
+			if (has_cup[i] != 0) {
+				switch (spawn_type) {
+				case 0:
+
+					break;
+
+				case 1:
+
+					break;
+
+				case 2:
+
+					break;
+					has_cup[i] = 0;
+				}
+			}
+		}*/
+
 	}
 
 	int score = 0;
 	float time = 60.f;
+	float player_speed = 20.f;
+
+	float drop_speed = 30.f;
+
+	
 };
