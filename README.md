@@ -1,4 +1,4 @@
-# (TODO: your game's title)
+# Cup Cat-astrophe
 
 Author: Isa Lie
 
@@ -45,22 +45,30 @@ set_palette() Does the same thing, with hardcoded magic and file value. Correspo
 
 Once the tiles are loaded, sprites and their initial locations are hardcoded. 
 the function set_cat() sets the 7 sprite group ([link](asset/cat.png)) with relative positions according to the player position.
-the function spawn_cup() and drop_cups() spawns and drops the cup ([link](asset/cups.png) by setting the position of the appropriate sprites.
+the function spawn_cup() and drop_cups() spawns and drops the cup ([link](asset/cups.png)) by setting the position of the appropriate sprites.
 
 The pipeline reads and writes to the asset/ folder in the .exe
 
 How To Play:
 
 Controls: 
+
 [Left Arrow] Move left
+
 [Right Arrow] Move right
+
 [Space Bar] Push cup
 
 The goal is to get as many points as possible in 30s.
+
 Containers:
+
 Small cup: +1 pt
+
 Tall glass: +2 pt
+
 Potion: Increase Speed
+
 
 This game was built with [NEST](NEST.md).
 

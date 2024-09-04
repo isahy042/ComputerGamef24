@@ -108,7 +108,6 @@ PlayMode::PlayMode() {
 	// some random number seed generators
 	spawn_cup(0.11111f);
 	spawn_cup(0.22222f);
-	spawn_cup(0.33333f);
 }
 
 PlayMode::~PlayMode() {
@@ -163,7 +162,6 @@ void PlayMode::update(float elapsed) {
 
 	if (left.pressed) player_at.x = max(player_at.x - (player_speed * elapsed), 50.f);
 	if (right.pressed) player_at.x = min(player_at.x + (player_speed * elapsed), 190.f);
-	if (space.pressed) try_push_cup();
 
 	//reset button press counters:
 	left.downs = 0;
@@ -202,6 +200,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	ppu.sprites[3].y = 225;
 	ppu.sprites[3].index = 30 + (score % 10);
 	ppu.sprites[3].attributes = num_attribute;
+
+	if (space.pressed) try_push_cup();
 
 	// player sprite 4-10
 	set_cat();
