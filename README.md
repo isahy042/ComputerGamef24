@@ -1,9 +1,9 @@
-# Cup Cat-astrophe
+# Cup Cat-Astrophe
 
 Author: Isa Lie
 
 Design: Cats love smashing glass cups, and now there's a game that turns their mischief into a point-scoring mission. With three cup types, 
-including a speed-boosting potion, players must strategically push cups off surfaces to maximize their score within a time limit.
+including a speed-boosting potion, players must strategically push cups off surfaces to maximize their score within a time limit (and become cooler while doing so).
 
 **Screen Shot:**
 
@@ -49,9 +49,9 @@ the function set_cat() sets the 7 sprite group ([cat](dist/asset/cat.png)) with 
 
 the function spawn_cup() and drop_cups() spawns and drops the cup ([cups](dist/asset/cups.png)) by setting the position of the appropriate sprites.
 
-the timer and score ([numbers](dist/asset/integers.png) are set in the draw() function.
+the timer and score ([numbers](dist/asset/integers.png)) are set in the draw() function.
 
-The pipeline reads and writes to the asset/ folder in the .exe
+The pipeline reads and writes to the asset/ folder of the executable.
 
 **How To Play**
 
@@ -64,7 +64,7 @@ Controls:
 
 [Space Bar] Push cup
 
-The goal is to get as many points as possible in 30s.
+The goal is to get as many points as possible in 30s. (The most I've gotten is 30)
 
 
 Containers:

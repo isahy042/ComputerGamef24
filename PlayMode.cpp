@@ -101,9 +101,25 @@ PlayMode::PlayMode() {
 	cup_storage.push_back(3-1);
 
 
-
 	player_at.y = 55; // cat has fixed horizontal path
 	player_at.x = 120;
+
+	// set cat attributes
+
+	for (uint8_t i = 0; i < 3; i++) {
+		uint8_t index = 15 - (i * 3);
+		ppu.sprites[4 + (i * 2)].index = index;
+		ppu.sprites[4 + (i * 2)].attributes = ((uint8_t)ppu.tile_palette_map[index]);
+		ppu.sprites[4 + (i * 2) + 1].index = index + 1;
+		ppu.sprites[4 + (i * 2) + 1].attributes = ((uint8_t)ppu.tile_palette_map[index + 1]);
+	}
+
+	ppu.sprites[10].index = 11; // eyes
+	ppu.sprites[10].attributes = ((uint8_t)ppu.tile_palette_map[11]);
+	ppu.sprites[11].index = 14; // glasses
+	ppu.sprites[11].attributes = ((uint8_t)ppu.tile_palette_map[14]);
+	ppu.sprites[12].index = 17; // crown
+	ppu.sprites[12].attributes = ((uint8_t)ppu.tile_palette_map[17]);
 
 	// some random number seed generators
 	spawn_cup(0.11111f);
@@ -162,6 +178,8 @@ void PlayMode::update(float elapsed) {
 
 	if (left.pressed) player_at.x = max(player_at.x - (player_speed * elapsed), 50.f);
 	if (right.pressed) player_at.x = min(player_at.x + (player_speed * elapsed), 190.f);
+	if (space.pressed) try_push_cup();
+
 
 	//reset button press counters:
 	left.downs = 0;
@@ -200,8 +218,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	ppu.sprites[3].y = 225;
 	ppu.sprites[3].index = 30 + (score % 10);
 	ppu.sprites[3].attributes = num_attribute;
-
-	if (space.pressed) try_push_cup();
 
 	// player sprite 4-10
 	set_cat();

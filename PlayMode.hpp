@@ -124,31 +124,34 @@ struct PlayMode : Mode {
 	
 	// set position of cat
 	void set_cat() {
-		// placing tiles 9 - 17, sprite 4-10
+		// placing tiles 9 - 17, sprite 4-12
 		uint8_t x = int8_t(player_at.x);
 		uint8_t y = int8_t(player_at.y);
 
 		for (uint8_t i = 0; i < 3; i++) {
 
-			uint8_t index = 15 - (i * 3);
 			ppu.sprites[4 + (i * 2)].x = x;
 			ppu.sprites[4 + (i * 2)].y = y;
-			ppu.sprites[4 + (i * 2)].index = index;
-			ppu.sprites[4 + (i * 2)].attributes = ((uint8_t)ppu.tile_palette_map[index]);
 
 			ppu.sprites[4 + (i * 2) + 1].x = x + 8;
 			ppu.sprites[4 + (i * 2) + 1].y = y;
-			ppu.sprites[4 + (i * 2) + 1].index = index+1;
-			ppu.sprites[4 + (i * 2) + 1].attributes = ((uint8_t)ppu.tile_palette_map[index+1]);
 
 			y += 8;
 		}
 
 		ppu.sprites[10].x = int8_t(player_at.x) + 2;
 		ppu.sprites[10].y = int8_t(player_at.y) + 8;
-		ppu.sprites[10].index = 11;
-		ppu.sprites[10].attributes = ((uint8_t)ppu.tile_palette_map[11]);
-		
+
+		if (score >= 10) {
+			ppu.sprites[11].x = int8_t(player_at.x) + 2;
+			ppu.sprites[11].y = int8_t(player_at.y) + 9;
+		}
+
+		if (score >= 20) {
+			ppu.sprites[12].x = int8_t(player_at.x) + 2;
+			ppu.sprites[12].y = int8_t(player_at.y) + 16;
+		}
+
 	}
 
 	// spawn cups
@@ -224,26 +227,28 @@ struct PlayMode : Mode {
 			break;
 		}
 
-
-
 	}
 
 	set<int> dropping_cups;
+	bool push_lock = false; // essentially a mutex lock on the try push cup function
 
 	void try_push_cup() {
+		if (!push_lock){
+			push_lock = true;
+			// get left most index
+			int index = ((int)player_at.x - 50) / 8;
+			int tiles_covered = (((int)player_at.x - 50) % 8 == 0) ? 2 : 3;
 
-		// get left most index
-		int index = ((int)player_at.x - 50) / 8;
-		int tiles_covered = (((int)player_at.x - 50) % 8 == 0) ? 2 : 3;
-
-		for (int i = index; i < index + tiles_covered; i++) {
-			if (has_cup[i] > 0) {
-				if (has_cup[i] < 40) score += 2;
-				else if (has_cup[i] >= 55) player_speed += 10.f;
-				else score += 1;
-				dropping_cups.insert(has_cup[i]);
-				has_cup[i] = -1;
+			for (int i = index; i < index + tiles_covered; i++) {
+				if (has_cup[i] > 0) {
+					if (has_cup[i] < 40) score += 2;
+					else if (has_cup[i] >= 55) player_speed += 10.f;
+					else score += 1;
+					dropping_cups.insert(has_cup[i]);
+					has_cup[i] = -1;
+				}
 			}
+			push_lock = false;
 		}
 	}
 
