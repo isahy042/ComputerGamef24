@@ -229,7 +229,7 @@ struct PlayMode : Mode {
 
 	}
 
-	set<int> dropping_cups;
+	vector<bool> dropping_cups;
 	bool push_lock = false; // essentially a mutex lock on the try push cup function
 
 	void try_push_cup() {
@@ -244,7 +244,7 @@ struct PlayMode : Mode {
 					if (has_cup[i] < 40) score += 2;
 					else if (has_cup[i] >= 55) player_speed += 10.f;
 					else score += 1;
-					dropping_cups.insert(has_cup[i]);
+					dropping_cups[has_cup[i]] = true;
 					has_cup[i] = -1;
 				}
 			}
@@ -252,26 +252,34 @@ struct PlayMode : Mode {
 		}
 	}
 
+	bool cup_dropping = false; // essentially a mutex lock on cup dropping
+
 	// decrease y of all currently dropping cups
 	void drop_cups(float elapsed) {
-		for (auto cup : dropping_cups) {
+
+		if (cup_dropping) return;
+
+		cup_dropping = true;
+		for (int cup = 0; cup < dropping_cups.size(); cup++) {
+			if (!dropping_cups[cup]) continue;
 			if (cup < 40 || cup >= 55) {
 				ppu.sprites[cup].y -= 1;
 				ppu.sprites[cup + 1].y -= 1;
 				if (ppu.sprites[cup + 1].y <= 4) {
 					ppu.sprites[cup].y = 250;
 					ppu.sprites[cup + 1].y = 250;
-					dropping_cups.erase(cup);
+					dropping_cups[cup] = false;
 				}
 			}
 			else {
 				ppu.sprites[cup].y -= 1;
 				if (ppu.sprites[cup].y <= 4) {
 					ppu.sprites[cup].y = 250;
-					dropping_cups.erase(cup);
+					dropping_cups[cup] = false;
 				}
 			}
 		}
+		cup_dropping = false;
 	}
 
 	int score = 0;

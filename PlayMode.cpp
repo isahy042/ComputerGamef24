@@ -77,6 +77,9 @@ PlayMode::PlayMode() {
 	/* Set cups using sprite 20 - 60 */
 	// starting at x = 50, about 18 slots for cups
 	has_cup = vector<int>(18, -1);
+	// boolean vector corresponding to each sprite 
+	// used to keep track of which sprites should be dropping
+	dropping_cups = vector<bool>(64, false);
 
 	for (int i = 20; i < 40; i += 2) {
 		ppu.sprites[i].index = 18;
