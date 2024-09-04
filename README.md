@@ -5,15 +5,15 @@ Author: Isa Lie
 Design: Cats love smashing glass cups, and now there's a game that turns their mischief into a point-scoring mission. With three cup types, 
 including a speed-boosting potion, players must strategically push cups off surfaces to maximize their score within a time limit.
 
-Screen Shot:
+**Screen Shot:**
 
 ![Screen Shot](screenshot.png)
 
-How Your Asset Pipeline Works:
+**Asset Pipeline**
 
 The Asset Pipeline is divided into the exporting and importing portion. 
 
-Exporting (.png -> binary)
+**Exporting (.png -> binary)**
 
 An cmake project called AssetPipeline is used to export .png file of tiles into binary files.
 see my-game1/AssetPipeline/AssetPipeline/README for more information.
@@ -33,7 +33,7 @@ For each 8x8 tile, the program finds or constructs a suitable palette, and gener
 then writes in the file corresponding to the png 2 * 64 + 1 bytes. The first byte corresponds to the palette index, and the remaining 2 * 64 
 bytes corresponds to bit0 and bit1 of each tile pixel.
 
-Importing (binary -> tiles & palettes)
+**Importing (binary -> tiles & palettes)**
 
 The importing is done in the constuctor of PlayMode(). 
 set_tiles(string file, string magic, int start_tile) 
@@ -43,13 +43,18 @@ Before loading in the file, the code also checks that the magic value of the fil
 	
 set_palette() Does the same thing, with hardcoded magic and file value. Corresponding data are loaded into ppu.palettes.
 
-Once the tiles are loaded, sprites and their initial locations are hardcoded. 
-the function set_cat() sets the 7 sprite group ([link](asset/cat.png)) with relative positions according to the player position.
-the function spawn_cup() and drop_cups() spawns and drops the cup ([link](asset/cups.png)) by setting the position of the appropriate sprites.
+Once the tiles are loaded, the background ([night sky](dist/asset/moon.png) and [table and wall](dist/asset/surface.png)) and sprites have their initial attributes set statically. 
+
+the function set_cat() sets the 7 sprite group ([cat](dist/asset/cat.png)) with relative positions according to the player position.
+
+the function spawn_cup() and drop_cups() spawns and drops the cup ([cups](dist/asset/cups.png)) by setting the position of the appropriate sprites.
+
+the timer and score ([numbers](dist/asset/integers.png) are set in the draw() function.
 
 The pipeline reads and writes to the asset/ folder in the .exe
 
-How To Play:
+**How To Play**
+
 
 Controls: 
 
@@ -60,6 +65,7 @@ Controls:
 [Space Bar] Push cup
 
 The goal is to get as many points as possible in 30s.
+
 
 Containers:
 
