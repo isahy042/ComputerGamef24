@@ -1,8 +1,8 @@
 # (TODO: your game's title)
 
-Author: (TODO: your name)
+Author: Isa Lie
 
-Design: (TODO: In two sentences or fewer, describe what is new and interesting about your game.)
+Design: precision of pose
 
 Screen Shot:
 
@@ -13,3 +13,7 @@ How To Play:
 (TODO: describe the controls and (if needed) goals/strategy.)
 
 This game was built with [NEST](NEST.md).
+
+The assets were made with blender following the tutorials below:
+
+https://youtu.be/AVkXy62V77E?si=LnreVXw_ySY7MzTM
