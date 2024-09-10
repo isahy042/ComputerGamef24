@@ -37,6 +37,11 @@ Load< Scene > hexapod_scene(LoadTagDefault, []() -> Scene const * {
 });
 
 PlayMode::PlayMode() : scene(*hexapod_scene) {
+	// randomly pick level
+	srand((unsigned int)std::time(nullptr));
+	level = rand() % total_levels;
+	std::string level_name = "L" + std::to_string(level);
+
 	//initialize all body part transformation vector
 	for (auto &transform : scene.transforms) {
 		if (transform.name == "Arm L") armL = &transform;
@@ -47,6 +52,8 @@ PlayMode::PlayMode() : scene(*hexapod_scene) {
 		else if (transform.name == "Leg R") legR = &transform;
 		else if (transform.name == "Needle") clock = &transform;
 		else if (transform.name == "Torso") torso = &transform;
+		else if (transform.name == "Meter") meter = &transform;
+		else if (transform.name == level_name) level_transform = &transform;
 	}
 	if (armL == nullptr) throw std::runtime_error("Left arm not found.");
 	if (farmL == nullptr) throw std::runtime_error("Left forearm not found.");
@@ -56,6 +63,8 @@ PlayMode::PlayMode() : scene(*hexapod_scene) {
 	if (legL == nullptr) throw std::runtime_error("Left Leg not found.");
 	if (clock == nullptr) throw std::runtime_error("Clock not found.");
 	if (torso == nullptr) throw std::runtime_error("Torso not found.");
+	if (meter == nullptr) throw std::runtime_error("Meter not found.");
+	if (level_transform == nullptr) throw std::runtime_error("Level not found.");
 
 	armL_base_rotation = armL->rotation;
 	farmL_base_rotation = farmL->rotation;
@@ -100,6 +109,11 @@ PlayMode::PlayMode() : scene(*hexapod_scene) {
 	base_rotations[3] = farmR_base_rotation;
 	base_rotations[4] = legL_base_rotation;
 	base_rotations[5] = legR_base_rotation;
+
+	// bring level to front 
+	level_transform->position -= glm::vec3(0.f,1.f,0.f);
+
+	
 
 }
 
@@ -174,49 +188,17 @@ void PlayMode::update(float elapsed) {
 				assert(false); // should not reach here.
 		}
 
-		//if (turn_factor < rotation_min) {
-		//	turn_factor = rotation_min;
-		//	rotation_direction = 1.f;
-		//}
-		//else if (turn_factor > rotation_max) {
-		//	turn_factor = rotation_max;
-		//	rotation_direction = -1.f;
-		//}
-
-		//upper_leg->rotation = upper_leg_base_rotation * glm::angleAxis(
-		//	glm::radians(7.0f * std::sin(wobble * 2.0f * 2.0f * float(M_PI))),
-		//	glm::vec3(0.0f, 0.0f, 1.0f)
-		//);
-		//lower_leg->rotation = lower_leg_base_rotation * glm::angleAxis(
-		//	glm::radians(10.0f * std::sin(wobble * 3.0f * 2.0f * float(M_PI))),
-		//	glm::vec3(0.0f, 0.0f, 1.0f)
-		//);
-
-		////move camera:
-		//{
-
-		//	//combine inputs into a move:
-		//	constexpr float PlayerSpeed = 30.0f;
-		//	glm::vec2 move = glm::vec2(0.0f);
-		//	if (left.pressed && !right.pressed) move.x =-1.0f;
-		//	if (!left.pressed && right.pressed) move.x = 1.0f;
-		//	if (down.pressed && !up.pressed) move.y =-1.0f;
-		//	if (!down.pressed && up.pressed) move.y = 1.0f;
-
-		//	//make it so that moving diagonally doesn't go faster:
-		//	if (move != glm::vec2(0.0f)) move = glm::normalize(move) * PlayerSpeed * elapsed;
-
-		//	glm::mat4x3 frame = camera->transform->make_local_to_parent();
-		//	glm::vec3 frame_right = frame[0];
-		//	//glm::vec3 up = frame[1];
-		//	glm::vec3 frame_forward = -frame[2];
-
-		//	camera->transform->position += move.x * frame_right + move.y * frame_forward;
-		//}
+		if (turn_factor < rotation_min) {
+			turn_factor = rotation_min;
+			rotation_direction = 1.f;
+		}
+		else if (turn_factor > rotation_max) {
+			turn_factor = rotation_max;
+			rotation_direction = -1.f;
+		}
 
 		//reset button press counters:
 		if (space.pressed) next_rotation();
-
 
 		//reset button press counters:
 		space.pressed = false;

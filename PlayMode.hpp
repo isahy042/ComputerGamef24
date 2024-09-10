@@ -5,7 +5,9 @@
 #include <glm/glm.hpp>
 
 #include <vector>
+#include <algorithm>
 #include <deque>
+#include <string>
 
 struct PlayMode : Mode {
 	PlayMode();
@@ -36,6 +38,8 @@ struct PlayMode : Mode {
 	Scene::Transform *farmR = nullptr;
 	Scene::Transform *clock = nullptr;
 	Scene::Transform *torso = nullptr;
+	Scene::Transform *meter = nullptr;
+	Scene::Transform *level_transform = nullptr;
 	glm::quat armR_base_rotation;
 	glm::quat farmR_base_rotation;
 	glm::quat armL_base_rotation;
@@ -46,7 +50,7 @@ struct PlayMode : Mode {
 	glm::quat torso_base_rotation;
 
 	float turn_factor = 0.f;
-	const float turn_speed = 50.f;
+	const float turn_speed = 100.f;
 	
 	//camera:
 	Scene::Camera *camera = nullptr;
@@ -55,11 +59,11 @@ struct PlayMode : Mode {
 	bool playing = true;
 	const float total_time = 60.f;
 	float time = 0.f; // 60 second count down
-	float score = 0.f;
-
+	
+	static const int total_levels = 1;
+	int level = 0;
 	// levels
-	float level[18] = {
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	float levels[total_levels][18] = { {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0} // the stand still
 	};
 
 	// transforms
@@ -71,15 +75,19 @@ struct PlayMode : Mode {
 
 	// boundaries of rotation
 	float rotation_lo[18] = {
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+		-180,-160,-100,-70,-120,-180,
+		-180,0,0,-40,-120,-180,
+		-80,-70,-30,-80,-20,-30
 	};
 
 	float rotation_hi[18] = {
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+		55,0,0,40,10,180,
+		0,160,100,70,10,180,
+		80,20,30,80,70,30
 	};
 
-	float rotation_min = -100.f;
-	float rotation_max = 100.f;
+	float rotation_min = rotation_lo[0];
+	float rotation_max = rotation_hi[0];
 
 	float rotation_direction = -1.f;
 
@@ -95,10 +103,14 @@ struct PlayMode : Mode {
 				base_rotations[body_part] = transforms[body_part]->rotation;
 				body_part++;
 				channel = 0;
+				rotation_min = rotation_lo[body_part * 3];
+				rotation_max = rotation_hi[body_part * 3];
 			}
 			else { // next axis of rotation
 				base_rotations[body_part] = transforms[body_part]->rotation;
 				channel++;
+				rotation_min = rotation_lo[body_part * 3 + channel];
+				rotation_max = rotation_hi[body_part * 3 + channel];
 			}
 			turn_factor = 0;
 			rotation_direction = 1.f;
@@ -107,6 +119,14 @@ struct PlayMode : Mode {
 	}
 
 	void update_score_meter() {
+		float score = 100;
+		for (int i = 0; i < 6; i++) {
+			for (int j = 0; j < 3; j++) {
+				score -= 3 * abs(levels[level][i * 3 + j] - floor(transforms[i]->rotation[j]));
+			}
+		}
+
+		meter->position += glm::vec3(0.f, 0.f, score / 50.f);
 	}
 
 };
