@@ -87,8 +87,20 @@ PlayMode::PlayMode() : scene(*hexapod_scene) {
 	if (scene.cameras.size() != 1) throw std::runtime_error("Expecting scene to have exactly one camera, but it has " + std::to_string(scene.cameras.size()));
 	camera = &scene.cameras.front();
 
-	// start first rotation
-	next_rotation();
+	// assign to transforms and base_rotations 
+	transforms[0] = armL;
+	transforms[1] = farmL;
+	transforms[2] = armR;
+	transforms[3] = farmR;
+	transforms[4] = legL;
+	transforms[5] = legR;
+	base_rotations[0] = armL_base_rotation;
+	base_rotations[1] = farmL_base_rotation;
+	base_rotations[2] = armR_base_rotation;
+	base_rotations[3] = farmR_base_rotation;
+	base_rotations[4] = legL_base_rotation;
+	base_rotations[5] = legR_base_rotation;
+
 }
 
 PlayMode::~PlayMode() {
@@ -97,51 +109,31 @@ PlayMode::~PlayMode() {
 bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size) {
 
 	if (evt.type == SDL_KEYDOWN) {
-		if (evt.key.keysym.sym == SDLK_ESCAPE) {
-			SDL_SetRelativeMouseMode(SDL_FALSE);
-			return true;
-		} else if (evt.key.keysym.sym == SDLK_a) {
-			left.downs += 1;
-			left.pressed = true;
-			return true;
-		} else if (evt.key.keysym.sym == SDLK_d) {
-			right.downs += 1;
-			right.pressed = true;
-			return true;
-		} else if (evt.key.keysym.sym == SDLK_w) {
-			up.downs += 1;
-			up.pressed = true;
-			return true;
-		} else if (evt.key.keysym.sym == SDLK_s) {
-			down.downs += 1;
-			down.pressed = true;
-			return true;
-		}
-	} else if (evt.type == SDL_KEYUP) {
 		if (evt.key.keysym.sym == SDLK_SPACE) {
 			space.downs += 1;
 			space.pressed = true;
 			return true;
 		}
-	} else if (evt.type == SDL_MOUSEBUTTONDOWN) {
-		if (SDL_GetRelativeMouseMode() == SDL_FALSE) {
-			SDL_SetRelativeMouseMode(SDL_TRUE);
-			return true;
-		}
-	} else if (evt.type == SDL_MOUSEMOTION) {
-		if (SDL_GetRelativeMouseMode() == SDL_TRUE) {
-			/*glm::vec2 motion = glm::vec2(
-				evt.motion.xrel / float(window_size.y),
-				-evt.motion.yrel / float(window_size.y)
-			);
-			camera->transform->rotation = glm::normalize(
-				camera->transform->rotation
-				* glm::angleAxis(-motion.x * camera->fovy, glm::vec3(0.0f, 1.0f, 0.0f))
-				* glm::angleAxis(motion.y * camera->fovy, glm::vec3(1.0f, 0.0f, 0.0f))
-			);*/
-			return true;
-		}
-	}
+	} 
+	//else if (evt.type == SDL_MOUSEBUTTONDOWN) {
+	//	if (SDL_GetRelativeMouseMode() == SDL_FALSE) {
+	//		SDL_SetRelativeMouseMode(SDL_TRUE);
+	//		return true;
+	//	}
+	//} else if (evt.type == SDL_MOUSEMOTION) {
+	//	if (SDL_GetRelativeMouseMode() == SDL_TRUE) {
+	//		/*glm::vec2 motion = glm::vec2(
+	//			evt.motion.xrel / float(window_size.y),
+	//			-evt.motion.yrel / float(window_size.y)
+	//		);
+	//		camera->transform->rotation = glm::normalize(
+	//			camera->transform->rotation
+	//			* glm::angleAxis(-motion.x * camera->fovy, glm::vec3(0.0f, 1.0f, 0.0f))
+	//			* glm::angleAxis(motion.y * camera->fovy, glm::vec3(1.0f, 0.0f, 0.0f))
+	//		);*/
+	//		return true;
+	//	}
+	//}
 
 
 	return false;
@@ -149,24 +141,47 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 
 void PlayMode::update(float elapsed) {
 
-	if (time > 0.f) {
+	if (playing && time < total_time) {
 
-		time -= elapsed;
+		time += elapsed;
 		// turn clock needle accordingly
 		clock->rotation = clock_base_rotation * glm::angleAxis(
-			glm::radians(elapsed * total_time),
+			glm::radians((time/total_time)*360),
 			glm::vec3(0.0f, 1.0f, 0.0f)
 		);
 
-		if (curr_transform) {
-			turn_factor += elapsed * turn_speed * rotation_direction;
+		assert(body_part < 6 && channel < 3);
+		turn_factor += elapsed * turn_speed * rotation_direction;
 
-			// slowly rotate body part in order
-			curr_transform->rotation = curr_base_rotation * glm::angleAxis(
-				glm::radians(turn_factor),
-				glm::vec3(0.0f, 1.0f, 0.0f)
-			);
+		// slowly rotate body part in order
+		switch (channel){
+			case 0:
+				transforms[body_part]->rotation = base_rotations[body_part] * glm::angleAxis(
+					glm::radians(turn_factor),
+					glm::vec3(1.0f, 0.0f, 0.0f));
+				break;
+			case 1:
+				transforms[body_part]->rotation = base_rotations[body_part] * glm::angleAxis(
+					glm::radians(turn_factor),
+					glm::vec3(0.0f, 1.0f, 0.0f));
+				break;
+			case 2:
+				transforms[body_part]->rotation = base_rotations[body_part] * glm::angleAxis(
+					glm::radians(turn_factor),
+					glm::vec3(0.0f, 0.0f, 1.0f));
+				break;
+			default:
+				assert(false); // should not reach here.
 		}
+
+		//if (turn_factor < rotation_min) {
+		//	turn_factor = rotation_min;
+		//	rotation_direction = 1.f;
+		//}
+		//else if (turn_factor > rotation_max) {
+		//	turn_factor = rotation_max;
+		//	rotation_direction = -1.f;
+		//}
 
 		//upper_leg->rotation = upper_leg_base_rotation * glm::angleAxis(
 		//	glm::radians(7.0f * std::sin(wobble * 2.0f * 2.0f * float(M_PI))),
@@ -204,6 +219,7 @@ void PlayMode::update(float elapsed) {
 
 
 		//reset button press counters:
+		space.pressed = false;
 		space.downs = 0;
 
 	}

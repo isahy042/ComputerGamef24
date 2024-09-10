@@ -51,33 +51,62 @@ struct PlayMode : Mode {
 	//camera:
 	Scene::Camera *camera = nullptr;
 
-	Scene::Transform* transforms[6] = { armL, farmL, armR, farmR, legL, legR };
+	// game count down and score
+	bool playing = true;
+	const float total_time = 60.f;
+	float time = 0.f; // 60 second count down
+	float score = 0.f;
+
+	// levels
+	float level[18] = {
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	};
+
+	// transforms
+	Scene::Transform* transforms[6];
+	glm::quat base_rotations[6];
+
 	int channel = 0; // 0 1 2 corresponding to xyz
 	int body_part = 0; // 0-5 corresponding to the transforms above
 
 	// boundaries of rotation
 	float rotation_lo[18] = {
-
-	};
-	float rotation_hi[18] = {
-
-	};
-
-	float level[18] = {
 		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 	};
 
-	const float total_time = 60.f;
-	float time = 60.f; // 60 second count down
-	float score = 0.f;
+	float rotation_hi[18] = {
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	};
+
+	float rotation_min = -100.f;
+	float rotation_max = 100.f;
 
 	float rotation_direction = -1.f;
-	
-	Scene::Transform* curr_transform = nullptr;
-	glm::quat curr_base_rotation = nullptr;
+
 	// record the previous thing rotated, switch to the next thing to be rotated
 	void next_rotation() {
+		
+		if (body_part == 5 && channel == 2) { // last
+			playing = false;
+			update_score_meter();
+		}
+		else {
+			if (channel == 2) { // next body part
+				base_rotations[body_part] = transforms[body_part]->rotation;
+				body_part++;
+				channel = 0;
+			}
+			else { // next axis of rotation
+				base_rotations[body_part] = transforms[body_part]->rotation;
+				channel++;
+			}
+			turn_factor = 0;
+			rotation_direction = 1.f;
+		}
+
 	}
-	
+
+	void update_score_meter() {
+	}
 
 };
