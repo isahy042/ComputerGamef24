@@ -37,26 +37,58 @@ Load< Scene > hexapod_scene(LoadTagDefault, []() -> Scene const * {
 });
 
 PlayMode::PlayMode() : scene(*hexapod_scene) {
-	//get pointers to leg for convenience:
+	//initialize all body part transformation vector
 	for (auto &transform : scene.transforms) {
 		if (transform.name == "Arm L") armL = &transform;
 		else if (transform.name == "FArm L") farmL = &transform;
 		else if (transform.name == "Arm R") armR = &transform;
 		else if (transform.name == "FArm R") farmR = &transform;
+		else if (transform.name == "Leg L") legL = &transform;
+		else if (transform.name == "Leg R") legR = &transform;
+		else if (transform.name == "Needle") clock = &transform;
+		else if (transform.name == "Torso") torso = &transform;
 	}
 	if (armL == nullptr) throw std::runtime_error("Left arm not found.");
 	if (farmL == nullptr) throw std::runtime_error("Left forearm not found.");
 	if (armR == nullptr) throw std::runtime_error("Right arm not found.");
 	if (farmR == nullptr) throw std::runtime_error("Right forearm not found.");
+	if (legR == nullptr) throw std::runtime_error("Right Leg not found.");
+	if (legL == nullptr) throw std::runtime_error("Left Leg not found.");
+	if (clock == nullptr) throw std::runtime_error("Clock not found.");
+	if (torso == nullptr) throw std::runtime_error("Torso not found.");
 
 	armL_base_rotation = armL->rotation;
 	farmL_base_rotation = farmL->rotation;
 	armR_base_rotation = armR->rotation;
 	farmR_base_rotation = farmR->rotation;
+	legR_base_rotation = legR->rotation;
+	legL_base_rotation = legL->rotation;
+	clock_base_rotation = clock->rotation;
+	torso_base_rotation = torso->rotation;
+
+	// set position of each body part relative to each other - scene hierarchy
+	// attach forearms to arms
+	farmL->position = glm::vec3(0.04f, 0.18f, -0.5f);
+	farmL->parent = armL;
+	farmR->position = glm::vec3(-0.04f, 0.18f, -0.5f);
+	farmR->parent = armR;
+
+	// attach everything to torso
+	armL->position = glm::vec3(.3f, 0.f, 0.9f);
+	armL->parent = torso;
+	armR->position = glm::vec3(-.3f, 0.f, 0.9f);
+	armR->parent = torso;
+	legL->position = glm::vec3(0.18f, 0.f, -0.1f);
+	legL->parent = torso;
+	legR->position = glm::vec3(-0.18f, 0.f, -0.1f);
+	legR->parent = torso;
 
 	//get pointer to camera for convenience:
 	if (scene.cameras.size() != 1) throw std::runtime_error("Expecting scene to have exactly one camera, but it has " + std::to_string(scene.cameras.size()));
 	camera = &scene.cameras.front();
+
+	// start first rotation
+	next_rotation();
 }
 
 PlayMode::~PlayMode() {
@@ -86,17 +118,9 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			return true;
 		}
 	} else if (evt.type == SDL_KEYUP) {
-		if (evt.key.keysym.sym == SDLK_a) {
-			left.pressed = false;
-			return true;
-		} else if (evt.key.keysym.sym == SDLK_d) {
-			right.pressed = false;
-			return true;
-		} else if (evt.key.keysym.sym == SDLK_w) {
-			up.pressed = false;
-			return true;
-		} else if (evt.key.keysym.sym == SDLK_s) {
-			down.pressed = false;
+		if (evt.key.keysym.sym == SDLK_SPACE) {
+			space.downs += 1;
+			space.pressed = true;
 			return true;
 		}
 	} else if (evt.type == SDL_MOUSEBUTTONDOWN) {
@@ -119,55 +143,71 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 		}
 	}
 
+
 	return false;
 }
 
 void PlayMode::update(float elapsed) {
 
-	//slowly rotates through [0,1):
-	wobble += elapsed / 10.0f;
-	wobble -= std::floor(wobble);
+	if (time > 0.f) {
 
-	armL->rotation = armL_base_rotation * glm::angleAxis(
-		glm::radians(5.0f * std::sin(wobble * 2.0f * float(M_PI))),
-		glm::vec3(0.0f, 1.0f, 0.0f)
-	);
-	//upper_leg->rotation = upper_leg_base_rotation * glm::angleAxis(
-	//	glm::radians(7.0f * std::sin(wobble * 2.0f * 2.0f * float(M_PI))),
-	//	glm::vec3(0.0f, 0.0f, 1.0f)
-	//);
-	//lower_leg->rotation = lower_leg_base_rotation * glm::angleAxis(
-	//	glm::radians(10.0f * std::sin(wobble * 3.0f * 2.0f * float(M_PI))),
-	//	glm::vec3(0.0f, 0.0f, 1.0f)
-	//);
+		time -= elapsed;
+		// turn clock needle accordingly
+		clock->rotation = clock_base_rotation * glm::angleAxis(
+			glm::radians(elapsed * total_time),
+			glm::vec3(0.0f, 1.0f, 0.0f)
+		);
 
-	////move camera:
-	//{
+		if (curr_transform) {
+			turn_factor += elapsed * turn_speed * rotation_direction;
 
-	//	//combine inputs into a move:
-	//	constexpr float PlayerSpeed = 30.0f;
-	//	glm::vec2 move = glm::vec2(0.0f);
-	//	if (left.pressed && !right.pressed) move.x =-1.0f;
-	//	if (!left.pressed && right.pressed) move.x = 1.0f;
-	//	if (down.pressed && !up.pressed) move.y =-1.0f;
-	//	if (!down.pressed && up.pressed) move.y = 1.0f;
+			// slowly rotate body part in order
+			curr_transform->rotation = curr_base_rotation * glm::angleAxis(
+				glm::radians(turn_factor),
+				glm::vec3(0.0f, 1.0f, 0.0f)
+			);
+		}
 
-	//	//make it so that moving diagonally doesn't go faster:
-	//	if (move != glm::vec2(0.0f)) move = glm::normalize(move) * PlayerSpeed * elapsed;
+		//upper_leg->rotation = upper_leg_base_rotation * glm::angleAxis(
+		//	glm::radians(7.0f * std::sin(wobble * 2.0f * 2.0f * float(M_PI))),
+		//	glm::vec3(0.0f, 0.0f, 1.0f)
+		//);
+		//lower_leg->rotation = lower_leg_base_rotation * glm::angleAxis(
+		//	glm::radians(10.0f * std::sin(wobble * 3.0f * 2.0f * float(M_PI))),
+		//	glm::vec3(0.0f, 0.0f, 1.0f)
+		//);
 
-	//	glm::mat4x3 frame = camera->transform->make_local_to_parent();
-	//	glm::vec3 frame_right = frame[0];
-	//	//glm::vec3 up = frame[1];
-	//	glm::vec3 frame_forward = -frame[2];
+		////move camera:
+		//{
 
-	//	camera->transform->position += move.x * frame_right + move.y * frame_forward;
-	//}
+		//	//combine inputs into a move:
+		//	constexpr float PlayerSpeed = 30.0f;
+		//	glm::vec2 move = glm::vec2(0.0f);
+		//	if (left.pressed && !right.pressed) move.x =-1.0f;
+		//	if (!left.pressed && right.pressed) move.x = 1.0f;
+		//	if (down.pressed && !up.pressed) move.y =-1.0f;
+		//	if (!down.pressed && up.pressed) move.y = 1.0f;
 
-	//reset button press counters:
-	left.downs = 0;
-	right.downs = 0;
-	up.downs = 0;
-	down.downs = 0;
+		//	//make it so that moving diagonally doesn't go faster:
+		//	if (move != glm::vec2(0.0f)) move = glm::normalize(move) * PlayerSpeed * elapsed;
+
+		//	glm::mat4x3 frame = camera->transform->make_local_to_parent();
+		//	glm::vec3 frame_right = frame[0];
+		//	//glm::vec3 up = frame[1];
+		//	glm::vec3 frame_forward = -frame[2];
+
+		//	camera->transform->position += move.x * frame_right + move.y * frame_forward;
+		//}
+
+		//reset button press counters:
+		if (space.pressed) next_rotation();
+
+
+		//reset button press counters:
+		space.downs = 0;
+
+	}
+	
 }
 
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
@@ -193,25 +233,5 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 	scene.draw(*camera);
 
-	{ //use DrawLines to overlay some text:
-		glDisable(GL_DEPTH_TEST);
-		float aspect = float(drawable_size.x) / float(drawable_size.y);
-		DrawLines lines(glm::mat4(
-			1.0f / aspect, 0.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f
-		));
-
-		constexpr float H = 0.09f;
-		lines.draw_text("Mouse motion rotates camera; WASD moves; escape ungrabs mouse",
-			glm::vec3(-aspect + 0.1f * H, -1.0 + 0.1f * H, 0.0),
-			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
-			glm::u8vec4(0x00, 0x00, 0x00, 0x00));
-		float ofs = 2.0f / drawable_size.y;
-		lines.draw_text("Mouse motion rotates camera; WASD moves; escape ungrabs mouse",
-			glm::vec3(-aspect + 0.1f * H + ofs, -1.0 + 0.1f * H + ofs, 0.0),
-			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
-			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
-	}
+	
 }
