@@ -154,8 +154,7 @@ struct PlayMode : Mode {
 			}
 		}
 		
-		printf("score %f", score);
-		score = (score - 0.3f) / 0.75f; // adjust score scale
+		score += 1.f; // normalize from -1 to 1 to 0 to 2
 		score = (score < 0.1f) ? 0.1f : score;
 		score = (score > 2.f) ? 2.f : score;
 

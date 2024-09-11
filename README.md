@@ -1,8 +1,8 @@
-# Ballerina Poser
+# Ballerina
 
 Author: Isa Lie
 
-Design: Given a model, the player controls the person to copy its pose in a given amount of time. After that, the similarity meter on the right displays how close the player's recreation was to the original model. 
+Design: Given a ballerina doll, the player controls the person to copy its pose in a given amount of time. After that, the similarity meter on the right displays how close the player's recreation was to the original model. 
 
 Screen Shot:
 
