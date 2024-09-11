@@ -117,30 +117,31 @@ PlayMode::PlayMode() : scene(*hexapod_scene) {
 	base_rotations[5] = legR_base_rotation;
 
 
-	// manipulate level rotation
-	for (int i = 0; i < 5; i++) {
-		model_transforms[i]->rotation = glm::vec3(levels[level][i * 3], levels[level][i * 3 + 1], levels[level][i * 3 + 2]);
-	}
-
 	// set position of each body part relative to each other - scene hierarchy
 	// attach forearms to arms
-	model_transforms[1]->position = glm::vec3(0.04f, 0.18f, -0.5f);
+	model_transforms[1]->position = glm::vec3(0.03f, 0.18f, -0.3f);
 	model_transforms[1]->parent = model_transforms[0];
-	model_transforms[3]->position = glm::vec3(-0.04f, 0.18f, -0.5f);
+	model_transforms[3]->position = glm::vec3(-0.03f, 0.18f, -0.3f);
 	model_transforms[3]->parent = model_transforms[2];
 
 	// attach everything to torso
-	model_transforms[0]->position = glm::vec3(.3f, 0.f, 0.9f);
+	model_transforms[0]->position = glm::vec3(.22f, 0.f, 0.9f);
 	model_transforms[0]->parent = model_transforms[6];
-	model_transforms[2]->position = glm::vec3(-.3f, 0.f, 0.9f);
+	model_transforms[2]->position = glm::vec3(-.22f, 0.f, 0.9f);
 	model_transforms[2]->parent = model_transforms[6];
-	model_transforms[4]->position = glm::vec3(0.18f, 0.f, -0.1f);
+	model_transforms[4]->position = glm::vec3(0.18f, 0.f, -0.2f);
 	model_transforms[4]->parent = model_transforms[6];
 	model_transforms[5]->position = glm::vec3(-0.18f, 0.f, -0.1f);
 	model_transforms[5]->parent = model_transforms[6];
 
 	model_transforms[6]->scale = glm::vec3(0.5f);
 	model_transforms[6]->position += glm::vec3(0,-0.2f, 0);
+	model_transforms[6]->rotation *= glm::angleAxis(glm::radians(-15.f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+	// manipulate level rotation
+	for (int i = 0; i < 5; i++) {
+		model_transforms[i]->rotation = glm::vec3(model_pose[level][i * 3], model_pose[level][i * 3 + 1], model_pose[level][i * 3 + 2]);
+	}
 
 	
 
@@ -164,11 +165,11 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			return true;
 		}
 	}
-	else if (evt.type == SDL_MOUSEBUTTONUP) {
+	else if (evt.type == SDL_MOUSEBUTTONUP && (playing || !animation)) {
 		SDL_SetRelativeMouseMode(SDL_FALSE);
 		return true;
 	}
-	else if (evt.type == SDL_MOUSEMOTION) {
+	else if (evt.type == SDL_MOUSEMOTION && (playing || !animation)) {
 		if (SDL_GetRelativeMouseMode() == SDL_TRUE) {
 			torso_z += (float)evt.motion.xrel;
 			return true;
@@ -237,12 +238,16 @@ void PlayMode::update(float elapsed) {
 		space.downs = 0;
 
 	}
-	//else if (animation) {
-	//	// animation
-
-	//}
+	else if (animation) {
+		// animation
+		time += elapsed;
+		if (time < total_time + 3.f) {
+			torso_z += (120.f * elapsed);
+		}
+		else animation = false;
+	}
 	else if (meter->position.z < score) {
-		float speed = (score) - meter->position.z;
+		float speed = score - meter->position.z;
 		meter->position += glm::vec3(0.f, 0.f, std::max(0.003f, elapsed * speed * speed));
 	}
 	

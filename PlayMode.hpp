@@ -49,7 +49,7 @@ struct PlayMode : Mode {
 	glm::quat torso_base_rotation;
 
 	float turn_factor = 0.f;
-	const float turn_speed = 150.f;
+	const float turn_speed = 120.f;
 
 	float torso_z = 0.f;
 	
@@ -59,20 +59,29 @@ struct PlayMode : Mode {
 	// game count down and score
 	bool playing = true;
 	bool animation = true;
-	const float total_time = 60.f;// 60 second count down
+	float total_time = 60.f;// 60 second count down
 	float time = 0.f; 
 	float score = 2.f;
 	
 	static const int total_levels = 1;
 	int level = 0;
 	// levels
+	float model_pose[1][18] = { {
+		-0.084202f, -1.3f, 0.073796f,
+		0.262006f, 0.102229f, -0.348818f,
+		-1.6f, 0.002514f, 0.001846f,
+		0.217125f, 0.1f, 0.009435f,
+		1.25f, 0.1f, -0.124795f,
+		0.981199f, 0.192127f, -0.003523f}
+	};
+
 	float levels[1][18] = { {
-		-0.120543f, -0.494954f, 0.069562f,
-0.158177f, 0.040604f, -0.245303f,
--0.118449f, 0.116791f, 0.692322f,
--0.169325f, -0.118267f, 0.020471f,
-0.622825f, 0.124243f, -0.151110f,
-0.987344f, 0.152462f, -0.006666f}
+		-0.084202f, -0.654961f, 0.073796f,
+		0.262006f, 0.102229f, -0.348818f,
+		-0.805994f, 0.002514f, 0.001846f,
+		0.217125f, 0.042378f, 0.009435f,
+		0.566970f, 0.087403f, -0.124795f,
+		0.981199f, 0.192127f, -0.003523f}
 	};
 
 	// transforms
@@ -137,22 +146,20 @@ struct PlayMode : Mode {
 
 	void update_score_meter() {
 		
+		total_time = time;
 		for (int i = 0; i < 6; i++) {
 			for (int j = 0; j < 3; j++) {
 				float f = (float)(levels[level][i * 3 + j] - transforms[i]->rotation[j]);
-				printf("%f, ",  transforms[i]->rotation[j]);
 				score -= (f * f);
 			}
-			printf("\n");
 		}
 		
-		printf("score 1 %f \n", score);
+		printf("score %f", score);
 		score = (score - 0.3f) / 0.75f; // adjust score scale
 		score = (score < 0.1f) ? 0.1f : score;
 		score = (score > 2.f) ? 2.f : score;
 
 		score += 0.5f; // adding mesh offset
-		printf("score %f \n", score);
 
 		
 	}
