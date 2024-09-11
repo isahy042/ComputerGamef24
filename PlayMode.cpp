@@ -40,7 +40,6 @@ PlayMode::PlayMode() : scene(*hexapod_scene) {
 	// randomly pick level
 	srand((unsigned int)std::time(nullptr));
 	level = rand() % total_levels;
-	std::string level_name = "L" + std::to_string(level);
 
 	//initialize all body part transformation vector
 	for (auto &transform : scene.transforms) {
@@ -50,10 +49,17 @@ PlayMode::PlayMode() : scene(*hexapod_scene) {
 		else if (transform.name == "FArm R") farmR = &transform;
 		else if (transform.name == "Leg L") legL = &transform;
 		else if (transform.name == "Leg R") legR = &transform;
+		else if (transform.name == "Arm L.001") model_transforms[0] = &transform;
+		else if (transform.name == "FArm L.001") model_transforms[1] = &transform;
+		else if (transform.name == "Arm R.001") model_transforms[2] = &transform;
+		else if (transform.name == "FArm R.001") model_transforms[3] = &transform;
+		else if (transform.name == "Leg L.001") model_transforms[4] = &transform;
+		else if (transform.name == "Leg R.001") model_transforms[5] = &transform;
+		else if (transform.name == "Torso.001") model_transforms[6] = &transform;
+
 		else if (transform.name == "Needle") clock = &transform;
 		else if (transform.name == "Torso") torso = &transform;
 		else if (transform.name == "Meter") meter = &transform;
-		else if (transform.name == level_name) level_transform = &transform;
 	}
 	if (armL == nullptr) throw std::runtime_error("Left arm not found.");
 	if (farmL == nullptr) throw std::runtime_error("Left forearm not found.");
@@ -64,7 +70,7 @@ PlayMode::PlayMode() : scene(*hexapod_scene) {
 	if (clock == nullptr) throw std::runtime_error("Clock not found.");
 	if (torso == nullptr) throw std::runtime_error("Torso not found.");
 	if (meter == nullptr) throw std::runtime_error("Meter not found.");
-	if (level_transform == nullptr) throw std::runtime_error("Level not found.");
+	for (int i = 0; i < 6; i++) if (model_transforms[i] == nullptr) throw std::runtime_error("Model not found.");
 
 	armL_base_rotation = armL->rotation;
 	farmL_base_rotation = farmL->rotation;
@@ -110,8 +116,31 @@ PlayMode::PlayMode() : scene(*hexapod_scene) {
 	base_rotations[4] = legL_base_rotation;
 	base_rotations[5] = legR_base_rotation;
 
-	// bring level to front 
-	level_transform->position -= glm::vec3(0.f,1.f,0.f);
+
+	// manipulate level rotation
+	for (int i = 0; i < 5; i++) {
+		model_transforms[i]->rotation = glm::vec3(levels[level][i * 3], levels[level][i * 3 + 1], levels[level][i * 3 + 2]);
+	}
+
+	// set position of each body part relative to each other - scene hierarchy
+	// attach forearms to arms
+	model_transforms[1]->position = glm::vec3(0.04f, 0.18f, -0.5f);
+	model_transforms[1]->parent = model_transforms[0];
+	model_transforms[3]->position = glm::vec3(-0.04f, 0.18f, -0.5f);
+	model_transforms[3]->parent = model_transforms[2];
+
+	// attach everything to torso
+	model_transforms[0]->position = glm::vec3(.3f, 0.f, 0.9f);
+	model_transforms[0]->parent = model_transforms[6];
+	model_transforms[2]->position = glm::vec3(-.3f, 0.f, 0.9f);
+	model_transforms[2]->parent = model_transforms[6];
+	model_transforms[4]->position = glm::vec3(0.18f, 0.f, -0.1f);
+	model_transforms[4]->parent = model_transforms[6];
+	model_transforms[5]->position = glm::vec3(-0.18f, 0.f, -0.1f);
+	model_transforms[5]->parent = model_transforms[6];
+
+	model_transforms[6]->scale = glm::vec3(0.5f);
+	model_transforms[6]->position += glm::vec3(0,-0.2f, 0);
 
 	
 
@@ -128,32 +157,34 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			space.pressed = true;
 			return true;
 		}
-	} 
-	//else if (evt.type == SDL_MOUSEBUTTONDOWN) {
-	//	if (SDL_GetRelativeMouseMode() == SDL_FALSE) {
-	//		SDL_SetRelativeMouseMode(SDL_TRUE);
-	//		return true;
-	//	}
-	//} else if (evt.type == SDL_MOUSEMOTION) {
-	//	if (SDL_GetRelativeMouseMode() == SDL_TRUE) {
-	//		/*glm::vec2 motion = glm::vec2(
-	//			evt.motion.xrel / float(window_size.y),
-	//			-evt.motion.yrel / float(window_size.y)
-	//		);
-	//		camera->transform->rotation = glm::normalize(
-	//			camera->transform->rotation
-	//			* glm::angleAxis(-motion.x * camera->fovy, glm::vec3(0.0f, 1.0f, 0.0f))
-	//			* glm::angleAxis(motion.y * camera->fovy, glm::vec3(1.0f, 0.0f, 0.0f))
-	//		);*/
-	//		return true;
-	//	}
-	//}
+	}
+	else if (evt.type == SDL_MOUSEBUTTONDOWN) {
+		if (SDL_GetRelativeMouseMode() == SDL_FALSE) {
+			SDL_SetRelativeMouseMode(SDL_TRUE);
+			return true;
+		}
+	}
+	else if (evt.type == SDL_MOUSEBUTTONUP) {
+		SDL_SetRelativeMouseMode(SDL_FALSE);
+		return true;
+	}
+	else if (evt.type == SDL_MOUSEMOTION) {
+		if (SDL_GetRelativeMouseMode() == SDL_TRUE) {
+			torso_z += (float)evt.motion.xrel;
+			return true;
+		}
+	}
 
 
 	return false;
 }
 
 void PlayMode::update(float elapsed) {
+
+	// rotate person based on mouse movement
+	torso->rotation = torso_base_rotation * glm::angleAxis(
+		glm::radians(torso_z),
+		glm::vec3(0.0f, 0.0f, 1.0f));
 
 	if (playing && time < total_time) {
 
@@ -165,6 +196,7 @@ void PlayMode::update(float elapsed) {
 		);
 
 		assert(body_part < 6 && channel < 3);
+
 		turn_factor += elapsed * turn_speed * rotation_direction;
 
 		// slowly rotate body part in order
@@ -205,6 +237,14 @@ void PlayMode::update(float elapsed) {
 		space.downs = 0;
 
 	}
+	//else if (animation) {
+	//	// animation
+
+	//}
+	else if (meter->position.z < score) {
+		float speed = (score) - meter->position.z;
+		meter->position += glm::vec3(0.f, 0.f, std::max(0.003f, elapsed * speed * speed));
+	}
 	
 }
 
@@ -213,10 +253,10 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	camera->aspect = float(drawable_size.x) / float(drawable_size.y);
 
 	//set up light type and position for lit_color_texture_program:
-	// TODO: consider using the Light(s) in the scene to do this
+
 	glUseProgram(lit_color_texture_program->program);
 	glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 1);
-	glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f,-1.0f)));
+	glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.5f,-0.5f)));
 	glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(glm::vec3(1.0f, 1.0f, 0.95f)));
 	glUseProgram(0);
 
@@ -230,6 +270,29 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	GL_ERRORS(); //print any errors produced by this setup code
 
 	scene.draw(*camera);
+
+	{ //use DrawLines to overlay some text:
+		glDisable(GL_DEPTH_TEST);
+		float aspect = float(drawable_size.x) / float(drawable_size.y);
+		DrawLines lines(glm::mat4(
+			1.0f / aspect, 0.0f, 0.0f, 0.0f,
+			0.0f, 1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f, 0.0f,
+			0.0f, 0.0f, 0.0f, 1.0f
+		));
+
+		constexpr float H = 0.09f;
+
+		lines.draw_text("Match the pose of the displayed doll!",
+			glm::vec3(-aspect + 0.09f * H, 0.85 - 0.1f * H, 0.0),
+			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+			glm::u8vec4(0x00, 0x00, 0x00, 0x00));
+
+		lines.draw_text("Use [Space] to pause the rotation. [Drag] left and right to spin the person",
+			glm::vec3(-aspect + 0.09f * H, 0.75 - 0.1f * H, 0.0),
+			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+			glm::u8vec4(0x00, 0x00, 0x00, 0x00));
+	}
 
 	
 }

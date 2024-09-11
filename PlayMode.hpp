@@ -39,7 +39,6 @@ struct PlayMode : Mode {
 	Scene::Transform *clock = nullptr;
 	Scene::Transform *torso = nullptr;
 	Scene::Transform *meter = nullptr;
-	Scene::Transform *level_transform = nullptr;
 	glm::quat armR_base_rotation;
 	glm::quat farmR_base_rotation;
 	glm::quat armL_base_rotation;
@@ -50,38 +49,49 @@ struct PlayMode : Mode {
 	glm::quat torso_base_rotation;
 
 	float turn_factor = 0.f;
-	const float turn_speed = 100.f;
+	const float turn_speed = 150.f;
+
+	float torso_z = 0.f;
 	
 	//camera:
 	Scene::Camera *camera = nullptr;
 
 	// game count down and score
 	bool playing = true;
-	const float total_time = 60.f;
-	float time = 0.f; // 60 second count down
+	bool animation = true;
+	const float total_time = 60.f;// 60 second count down
+	float time = 0.f; 
+	float score = 2.f;
 	
 	static const int total_levels = 1;
 	int level = 0;
 	// levels
-	float levels[total_levels][18] = { {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0} // the stand still
+	float levels[1][18] = { {
+		-0.120543f, -0.494954f, 0.069562f,
+0.158177f, 0.040604f, -0.245303f,
+-0.118449f, 0.116791f, 0.692322f,
+-0.169325f, -0.118267f, 0.020471f,
+0.622825f, 0.124243f, -0.151110f,
+0.987344f, 0.152462f, -0.006666f}
 	};
 
 	// transforms
 	Scene::Transform* transforms[6];
 	glm::quat base_rotations[6];
+	Scene::Transform* model_transforms[7];
 
 	int channel = 0; // 0 1 2 corresponding to xyz
 	int body_part = 0; // 0-5 corresponding to the transforms above
 
 	// boundaries of rotation
 	float rotation_lo[18] = {
-		-180,-160,-100,-70,-120,-180,
+		-150,-130,-100,-70,-120,-100,
 		-180,0,0,-40,-120,-180,
 		-80,-70,-30,-80,-20,-30
 	};
 
 	float rotation_hi[18] = {
-		55,0,0,40,10,180,
+		55,0,0,40,10,100,
 		0,160,100,70,10,180,
 		80,20,30,80,70,30
 	};
@@ -99,19 +109,26 @@ struct PlayMode : Mode {
 			update_score_meter();
 		}
 		else {
-			if (channel == 2) { // next body part
-				base_rotations[body_part] = transforms[body_part]->rotation;
+			base_rotations[body_part] = transforms[body_part]->rotation;
+			// skipping the following 
+			if ((body_part == 0 || body_part == 2 || body_part == 3) && channel == 1) {
 				body_part++;
 				channel = 0;
-				rotation_min = rotation_lo[body_part * 3];
-				rotation_max = rotation_hi[body_part * 3];
+			}
+			else if ((body_part == 1 || body_part == 2 || body_part == 4 || body_part == 5) && channel == 0) {
+				channel = 2;
+			}
+			else if (channel == 2) { // next body part
+				body_part++;
+				channel = 0;
 			}
 			else { // next axis of rotation
-				base_rotations[body_part] = transforms[body_part]->rotation;
 				channel++;
-				rotation_min = rotation_lo[body_part * 3 + channel];
-				rotation_max = rotation_hi[body_part * 3 + channel];
 			}
+
+			rotation_min = rotation_lo[body_part * 3 + channel];
+			rotation_max = rotation_hi[body_part * 3 + channel];
+
 			turn_factor = 0;
 			rotation_direction = 1.f;
 		}
@@ -119,14 +136,25 @@ struct PlayMode : Mode {
 	}
 
 	void update_score_meter() {
-		float score = 100;
+		
 		for (int i = 0; i < 6; i++) {
 			for (int j = 0; j < 3; j++) {
-				score -= 3 * abs(levels[level][i * 3 + j] - floor(transforms[i]->rotation[j]));
+				float f = (float)(levels[level][i * 3 + j] - transforms[i]->rotation[j]);
+				printf("%f, ",  transforms[i]->rotation[j]);
+				score -= (f * f);
 			}
+			printf("\n");
 		}
+		
+		printf("score 1 %f \n", score);
+		score = (score - 0.3f) / 0.75f; // adjust score scale
+		score = (score < 0.1f) ? 0.1f : score;
+		score = (score > 2.f) ? 2.f : score;
 
-		meter->position += glm::vec3(0.f, 0.f, score / 50.f);
+		score += 0.5f; // adding mesh offset
+		printf("score %f \n", score);
+
+		
 	}
 
 };
