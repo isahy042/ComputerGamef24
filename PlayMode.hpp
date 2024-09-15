@@ -52,10 +52,18 @@ struct PlayMode : Mode {
 	int item_index = 0;
 	int crow_bar = 5;
 
-	//music coming from the tip of the leg (as a demonstration):
-	std::shared_ptr< Sound::PlayingSample > leg_tip_loop;
+	
+	// sound from
+	std::shared_ptr< Sound::PlayingSample > sound_source;
 	
 	//camera:
 	Scene::Camera *camera = nullptr;
+
+	// functions
+	std::string interaction_str = "";
+	void interact();
+
+	
+
 
 };

@@ -36,9 +36,40 @@ Load< Scene > hexapod_scene(LoadTagDefault, []() -> Scene const * {
 	});
 });
 
-Load< Sound::Sample > dusty_floor_sample(LoadTagDefault, []() -> Sound::Sample const * {
+/* All sound samples */
+Load< Sound::Sample > knock_door_sample(LoadTagDefault, []() -> Sound::Sample const* {
 	return new Sound::Sample(data_path("dusty-floor.opus"));
-});
+	});
+
+Load< Sound::Sample > hit_door_sample(LoadTagDefault, []() -> Sound::Sample const* {
+	return new Sound::Sample(data_path("dusty-floor.opus"));
+	});
+
+Load< Sound::Sample > use_key_sample(LoadTagDefault, []() -> Sound::Sample const* {
+	return new Sound::Sample(data_path("dusty-floor.opus"));
+	});
+
+Load< Sound::Sample > knock_wall_sample(LoadTagDefault, []() -> Sound::Sample const* {
+	return new Sound::Sample(data_path("dusty-floor.opus"));
+	});
+
+Load< Sound::Sample > knock_wall_hollow_sample(LoadTagDefault, []() -> Sound::Sample const* {
+	return new Sound::Sample(data_path("dusty-floor.opus"));
+	});
+
+Load< Sound::Sample > knock_wall_safe_sample(LoadTagDefault, []() -> Sound::Sample const* {
+	return new Sound::Sample(data_path("dusty-floor.opus"));
+	});
+
+Load< Sound::Sample > open_wall_sample(LoadTagDefault, []() -> Sound::Sample const* {
+	return new Sound::Sample(data_path("dusty-floor.opus"));
+	});
+
+Load< Sound::Sample > collect_key_sample(LoadTagDefault, []() -> Sound::Sample const* {
+	return new Sound::Sample(data_path("dusty-floor.opus"));
+	});
+
+
 
 PlayMode::PlayMode() : scene(*hexapod_scene) {
 	//get pointers to leg for convenience:
@@ -71,6 +102,9 @@ PlayMode::PlayMode() : scene(*hexapod_scene) {
 	// initialize variables
 	item_list = { true, true, false, false };
 
+	// move things offscreen
+	door_selector->position += out_of_screen;
+ 
 	// find a box for key 1 and a box for key 2
 	int key1_box = 21;
 	int key2_box = 10;
@@ -90,14 +124,13 @@ PlayMode::PlayMode() : scene(*hexapod_scene) {
 	key2->position = walls[key2_box]->position + glm::vec3(0.f, 0.5f, 0.f);
 	safe->position = walls[key2_box]->position + glm::vec3(0.f, 0.5f, 0.f);
 
-
 	//get pointer to camera for convenience:
 	if (scene.cameras.size() != 1) throw std::runtime_error("Expecting scene to have exactly one camera, but it has " + std::to_string(scene.cameras.size()));
 	camera = &scene.cameras.front();
 
 	////start music loop playing:
 	//// (note: position will be over-ridden in update())
-	//leg_tip_loop = Sound::loop_3D(*dusty_floor_sample, 1.0f, get_leg_tip_position(), 10.0f);
+	//sound_source = Sound::play(*dusty_floor_sample, 1.0f, get_leg_tip_position(), 10.0f);
 }
 
 PlayMode::~PlayMode() {
@@ -166,55 +199,6 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 void PlayMode::update(float elapsed) {
 
 
-	//slowly rotates through [0,1):
-	//wobble += elapsed / 10.0f;
-	//wobble -= std::floor(wobble);
-
-	//hip->rotation = hip_base_rotation * glm::angleAxis(
-	//	glm::radians(5.0f * std::sin(wobble * 2.0f * float(M_PI))),
-	//	glm::vec3(0.0f, 1.0f, 0.0f)
-	//);
-	//upper_leg->rotation = upper_leg_base_rotation * glm::angleAxis(
-	//	glm::radians(7.0f * std::sin(wobble * 2.0f * 2.0f * float(M_PI))),
-	//	glm::vec3(0.0f, 0.0f, 1.0f)
-	//);
-	//lower_leg->rotation = lower_leg_base_rotation * glm::angleAxis(
-	//	glm::radians(10.0f * std::sin(wobble * 3.0f * 2.0f * float(M_PI))),
-	//	glm::vec3(0.0f, 0.0f, 1.0f)
-	//);
-
-	////move sound to follow leg tip position:
-	//leg_tip_loop->set_position(get_leg_tip_position(), 1.0f / 60.0f);
-
-	////move camera:
-	//{
-
-	//	//combine inputs into a move:
-	//	constexpr float PlayerSpeed = 30.0f;
-	//	glm::vec2 move = glm::vec2(0.0f);
-	//	if (left.pressed && !right.pressed) move.x =-1.0f;
-	//	if (!left.pressed && right.pressed) move.x = 1.0f;
-	//	if (down.pressed && !up.pressed) move.y =-1.0f;
-	//	if (!down.pressed && up.pressed) move.y = 1.0f;
-
-	//	//make it so that moving diagonally doesn't go faster:
-	//	if (move != glm::vec2(0.0f)) move = glm::normalize(move) * PlayerSpeed * elapsed;
-
-	//	glm::mat4x3 frame = camera->transform->make_local_to_parent();
-	//	glm::vec3 frame_right = frame[0];
-	//	//glm::vec3 up = frame[1];
-	//	glm::vec3 frame_forward = -frame[2];
-
-	//	camera->transform->position += move.x * frame_right + move.y * frame_forward;
-	//}
-
-	//{ //update listener to camera position:
-	//	glm::mat4x3 frame = camera->transform->make_local_to_parent();
-	//	glm::vec3 frame_right = frame[0];
-	//	glm::vec3 frame_at = frame[3];
-	//	Sound::listener.set_position_right(frame_at, frame_right, 1.0f / 60.0f);
-	//}
-
 	//reset button press counters:
 	left.downs = 0;
 	right.downs = 0;
@@ -264,5 +248,158 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
 	}
 	GL_ERRORS();
+}
+
+/* Interact with something*/
+void PlayMode::interact() {
+	// 0 fist
+	// 1 crow bar
+	// 2 key 1
+	// 3 key 2
+
+	// walls_occupied[wall_index]
+	// -1 = opened, solid
+	// -2 = opened, key #1
+	// -3 = opened, safe not opened
+	// -4 = opened, hollow
+	// -5 = opened, key #2
+
+
+	bool isDoor = (selected_row > 0) && (selected_col == 3 || selected_col == 4);
+
+	if (isDoor) {
+		if (item_index == 0) {
+			sound_source = Sound::play(*knock_door_sample);
+			interaction_str = "Maybe someone will open the door for me.";
+		}
+		else if (item_index == 1) {
+			crow_bar--;
+			sound_source = Sound::play(*hit_door_sample);
+			interaction_str = "This door is too sturdy. I should look for a key.";
+		}
+		else if (item_index == 2) {
+			sound_source = Sound::play(*use_key_sample);
+			interaction_str = "It won't open. This key looks too new for the door.";
+		}
+		else if (item_index == 3) {
+			sound_source = Sound::play(*use_key_sample);
+			interaction_str = "It worked!";
+			// TODO: Game over.
+		}
+		else assert(false); // should not reach here
+	}
+	else {
+		int wall_index = get_wall_index();
+		if (item_index == 0) {
+
+			if (walls_occupied[wall_index] == 0) {
+				sound_source = Sound::play(*knock_wall_sample);
+				interaction_str = "...";
+			}
+
+			else if (walls_occupied[wall_index] == 1) {
+				sound_source = Sound::play(*knock_wall_hollow_sample);
+				interaction_str = "...huh.";
+			}
+
+			else if (walls_occupied[wall_index] == 2) {
+				sound_source = Sound::play(*knock_wall_safe_sample);
+				interaction_str = "...huh.";
+			}
+
+			else if (walls_occupied[wall_index] == 3) {
+				sound_source = Sound::play(*knock_wall_hollow_sample);
+				interaction_str = "...huh.";
+			}
+
+			else if (walls_occupied[wall_index] == -2) {
+				// collect key 1
+				sound_source = Sound::play(*collect_key_sample);
+				interaction_str = "Got a key.";
+			}
+
+			else if (walls_occupied[wall_index] == -5) {
+				// collect key 2
+				sound_source = Sound::play(*collect_key_sample);
+				interaction_str = "Got a key.";
+			}
+			
+		}
+		else if (item_index == 1) {
+			
+			if (walls_occupied[wall_index] == 0) {
+				crow_bar--;
+
+				walls_occupied[wall_index] = -1;
+
+				boxes[wall_index]->rotation *= glm::angleAxis(
+					glm::radians(180.f),
+					glm::vec3(0.0f, 0.0f, 1.0f));
+				walls[wall_index]->position += out_of_screen;
+
+				sound_source = Sound::play(*open_wall_sample);
+				interaction_str = "The wall here is solid.";
+
+			}
+			else if (walls_occupied[wall_index] == 1) {
+				crow_bar--;
+
+				walls_occupied[wall_index] = -2;
+
+				walls[wall_index]->position += out_of_screen;
+
+				sound_source = Sound::play(*open_wall_sample);
+				interaction_str = "There is a key here!";
+
+			}
+			else if (walls_occupied[wall_index] == 2) {
+				crow_bar--;
+
+				walls_occupied[wall_index] = -3;
+
+				walls[wall_index]->position += out_of_screen;
+
+				sound_source = Sound::play(*open_wall_sample);
+				interaction_str = "There is a safe here!";
+
+			}
+			else if (walls_occupied[wall_index] == 3) {
+				crow_bar--;
+
+				walls_occupied[wall_index] = -4;
+
+				walls[wall_index]->position += out_of_screen;
+
+				sound_source = Sound::play(*open_wall_sample);
+				interaction_str = "The wall is hollow, but there is nothing in it.";
+			}
+			else if (walls_occupied[wall_index] == -3) {
+				crow_bar--;
+				interaction_str = "This safe is too sturdy. I should look for a key.";
+			}
+			else if (walls_occupied[wall_index] < 0) {
+				interaction_str = "I already removed the wall tile here.";
+			}
+
+		}
+		else if (item_index == 2) {
+
+			if (walls_occupied[wall_index] == -3) {
+				walls_occupied[wall_index] = -5;
+				sound_source = Sound::play(*use_key_sample);
+				safe->position += out_of_screen;
+				interaction_str = "The safe opened!";
+			}
+
+			else {
+				interaction_str = "Why would I do that?";
+			}
+
+		}
+		else if (item_index == 3) {
+			interaction_str = "Why would I do that?";
+		}
+		else assert(false); // should not reach here
+	}
 }
 
