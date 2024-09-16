@@ -307,7 +307,18 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 /* Convert row col to wall index because they don't correspond to each other :( */
 int PlayMode::get_wall_index() {
 
-	return 0;
+	int index = 0;
+	float min_dist = 100.f;
+
+	for (int i = 0; i < total_walls; i++) {
+		float dist = glm::distance(selector->position, boxes[i]->position);
+		if (dist < min_dist) {
+			index = i;
+			min_dist = dist;
+		}
+	}
+
+	return index;
 }
 
 /* Use 1-4 to toggle item selection */
@@ -429,12 +440,27 @@ void PlayMode::interact() {
 				// collect key 1
 				sound_source = Sound::play(*collect_key_sample);
 				interaction_str = "Got a key.";
+
+				walls_occupied[wall_index] = -4;
+				key1->position = item_holder->position + glm::vec3(0.f,0.f,0.6f);
+				item_list[2] = true;
 			}
 
 			else if (walls_occupied[wall_index] == -5) {
 				// collect key 2
 				sound_source = Sound::play(*collect_key_sample);
 				interaction_str = "Got a key.";
+
+				walls_occupied[wall_index] = -4;
+				key2->position = item_holder->position;
+				item_list[3] = true;
+
+			}
+
+			else if (walls_occupied[wall_index] == -3) {
+				// try open safe
+				sound_source = Sound::play(*collect_key_sample);
+				interaction_str = "It's locked.";
 			}
 			
 		}
