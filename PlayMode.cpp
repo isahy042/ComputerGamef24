@@ -77,6 +77,9 @@ PlayMode::PlayMode() : scene(*hexapod_scene) {
 		if (transform.name.substr(0,4) == "Wall") {
 			walls[stoi(transform.name.substr(5, 3))] = &transform;
 		}
+		if (transform.name.substr(0, 3) == "Box") {
+			boxes[stoi(transform.name.substr(4, 3))] = &transform;
+		}
 		else if (transform.name == "Door") door = &transform;
 		else if (transform.name == "Safe") safe = &transform;
 		else if (transform.name == "Key_Safe") key1 = &transform;
@@ -85,7 +88,6 @@ PlayMode::PlayMode() : scene(*hexapod_scene) {
 		else if (transform.name == "Selector_Item") item_selector = &transform;
 		else if (transform.name == "Selector_Wall") selector = &transform;
 		else if (transform.name == "Selector_Door") door_selector = &transform;
-
 
 	}
 
@@ -98,12 +100,17 @@ PlayMode::PlayMode() : scene(*hexapod_scene) {
 	if (selector == nullptr) throw std::runtime_error("Mesh not found.");
 	if (door_selector == nullptr) throw std::runtime_error("Mesh not found.");
 	for (auto w : walls) if (w == nullptr) throw std::runtime_error("Wall not found.");
+	for (auto b : boxes) if (b == nullptr) throw std::runtime_error("Box not found.");
+
+	selector_base_pos = selector->position;
+	door_selector_base_pos = door_selector->position;
+	item_selector_base_pos = item_selector->position;
 
 	// initialize variables
 	item_list = { true, true, false, false };
 
 	// move things offscreen
-	door_selector->position += out_of_screen;
+	door_selector->position = out_of_screen;
  
 	// find a box for key 1 and a box for key 2
 	int key1_box = 21;
@@ -120,9 +127,9 @@ PlayMode::PlayMode() : scene(*hexapod_scene) {
 	walls_occupied[key2_box] = 2;
 
 	// move key and safe to appropriate boxes
-	key1->position = walls[key1_box]->position + glm::vec3(0.f, 0.5f, 0.f);
-	key2->position = walls[key2_box]->position + glm::vec3(0.f, 0.5f, 0.f);
-	safe->position = walls[key2_box]->position + glm::vec3(0.f, 0.5f, 0.f);
+	key1->position = boxes[key1_box]->position;
+	key2->position = boxes[key2_box]->position;
+	safe->position = boxes[key2_box]->position;
 
 	//get pointer to camera for convenience:
 	if (scene.cameras.size() != 1) throw std::runtime_error("Expecting scene to have exactly one camera, but it has " + std::to_string(scene.cameras.size()));
@@ -139,56 +146,80 @@ PlayMode::~PlayMode() {
 bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size) {
 
 	if (evt.type == SDL_KEYDOWN) {
-		if (evt.key.keysym.sym == SDLK_ESCAPE) {
-			SDL_SetRelativeMouseMode(SDL_FALSE);
-			return true;
-		} else if (evt.key.keysym.sym == SDLK_a) {
+		if (evt.key.keysym.sym == SDLK_LEFT) {
 			left.downs += 1;
 			left.pressed = true;
 			return true;
-		} else if (evt.key.keysym.sym == SDLK_d) {
+		} else if (evt.key.keysym.sym == SDLK_RIGHT) {
 			right.downs += 1;
 			right.pressed = true;
 			return true;
-		} else if (evt.key.keysym.sym == SDLK_w) {
+		} else if (evt.key.keysym.sym == SDLK_UP) {
 			up.downs += 1;
 			up.pressed = true;
 			return true;
-		} else if (evt.key.keysym.sym == SDLK_s) {
+		} else if (evt.key.keysym.sym == SDLK_DOWN) {
 			down.downs += 1;
 			down.pressed = true;
 			return true;
 		}
+		else if (evt.key.keysym.sym == SDLK_1) {
+			one.downs += 1;
+			one.pressed = true;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_2) {
+			two.downs += 1;
+			two.pressed = true;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_3) {
+			three.downs += 1;
+			three.pressed = true;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_4) {
+			four.downs += 1;
+			four.pressed = true;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_SPACE) {
+			space.downs += 1;
+			space.pressed = true;
+			return true;
+		}
 	} else if (evt.type == SDL_KEYUP) {
-		if (evt.key.keysym.sym == SDLK_a) {
+		if (evt.key.keysym.sym == SDLK_LEFT) {
 			left.pressed = false;
 			return true;
-		} else if (evt.key.keysym.sym == SDLK_d) {
+		} else if (evt.key.keysym.sym == SDLK_RIGHT) {
 			right.pressed = false;
 			return true;
-		} else if (evt.key.keysym.sym == SDLK_w) {
+		} else if (evt.key.keysym.sym == SDLK_UP) {
 			up.pressed = false;
 			return true;
-		} else if (evt.key.keysym.sym == SDLK_s) {
+		} else if (evt.key.keysym.sym == SDLK_DOWN) {
 			down.pressed = false;
 			return true;
 		}
-	} else if (evt.type == SDL_MOUSEBUTTONDOWN) {
-		if (SDL_GetRelativeMouseMode() == SDL_FALSE) {
-			SDL_SetRelativeMouseMode(SDL_TRUE);
+		else if (evt.key.keysym.sym == SDLK_1) {
+			one.pressed = false;
 			return true;
 		}
-	} else if (evt.type == SDL_MOUSEMOTION) {
-		if (SDL_GetRelativeMouseMode() == SDL_TRUE) {
-			glm::vec2 motion = glm::vec2(
-				evt.motion.xrel / float(window_size.y),
-				-evt.motion.yrel / float(window_size.y)
-			);
-			camera->transform->rotation = glm::normalize(
-				camera->transform->rotation
-				* glm::angleAxis(-motion.x * camera->fovy, glm::vec3(0.0f, 1.0f, 0.0f))
-				* glm::angleAxis(motion.y * camera->fovy, glm::vec3(1.0f, 0.0f, 0.0f))
-			);
+		else if (evt.key.keysym.sym == SDLK_2) {
+			two.pressed = false;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_3) {
+			three.pressed = false;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_4) {
+			four.pressed = false;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_SPACE) {
+			space.pressed = false;
 			return true;
 		}
 	}
@@ -198,12 +229,35 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 
 void PlayMode::update(float elapsed) {
 
+	time += elapsed;
+
+	if (one.pressed) toggle_item(1);
+	else if (two.pressed) toggle_item(2);
+	else if (three.pressed) toggle_item(3);
+	else if (four.pressed) toggle_item(4);
+
+	// slow down toggle time - once every 0.075 s
+	if ((int)(time * 13) != increment) {
+		increment = (int)(time * 13);
+		toggle_wall(left.pressed, right.pressed, up.pressed, down.pressed);
+		if (space.pressed) interact();
+	}
+
+	if (crow_bar == 0) {
+		// TODO: Game Over
+	}
 
 	//reset button press counters:
 	left.downs = 0;
 	right.downs = 0;
 	up.downs = 0;
 	down.downs = 0;
+
+	// reset timer when number too high
+	if (time > 600.f) {
+		time = 0;
+		increment = 0;
+	}
 }
 
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
@@ -250,6 +304,65 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	GL_ERRORS();
 }
 
+/* Convert row col to wall index because they don't correspond to each other :( */
+int PlayMode::get_wall_index() {
+
+	return 0;
+}
+
+/* Use 1-4 to toggle item selection */
+void PlayMode::toggle_item(int item) {
+
+	item--; // make item 0 indexed
+
+	if (!item_list[item] || item_index == item) return;
+
+	item_index = item;
+	item_selector->position = item_selector_base_pos + (glm::vec3(0.f, 0.f, -0.55f) * (float)item);
+}
+
+/* Use arrow to toggle wall selection */
+void PlayMode::toggle_wall(bool isLeft, bool isRight, bool isUp, bool isDown) {
+
+	if ((isUp == isDown) && (isLeft == isRight)) return;
+	
+	// if currently selecting door
+	bool isDoor = (selected_row < 4) && (selected_col == 3 || selected_col == 4);
+
+	if (isDoor) {
+		if (isLeft && !isRight) selected_col = 2;
+		else if (!isLeft && isRight) selected_col = 5;
+		if (isUp && !isDown) selected_row = 4;
+		
+		if (isDown && (isLeft == isRight)) return;
+	}
+	else {
+		if (isUp && !isDown) selected_row = (selected_row >= 4) ? 4 : selected_row + 1;
+		else if (!isUp && isDown) selected_row = (selected_row <= 0) ? 0 : selected_row - 1;
+		if (isLeft && !isRight) selected_col = (selected_col <= 0) ? 0 : selected_col - 1;
+		else if (!isLeft && isRight) selected_col = (selected_col >= 7) ? 7 : selected_col + 1;
+
+		// is the door selected?
+		isDoor = (selected_row < 4) && (selected_col == 3 || selected_col == 4);
+		if (isDoor) {
+			door_selector->position = door_selector_base_pos;
+			selector->position = out_of_screen;
+			return;
+		}
+	}
+
+	// select corresponding wall tile
+	door_selector->position = out_of_screen;
+	selector->position = selector_base_pos
+		+ (glm::vec3(0.f, 0.f, 1.f) * (float)selected_row)
+		+ (glm::vec3(1.f, 0.f, 0.f) * (float)selected_col);
+
+	printf("%d %d \n", selected_row, selected_col);
+
+	
+
+}
+
 /* Interact with something*/
 void PlayMode::interact() {
 	// 0 fist
@@ -265,7 +378,7 @@ void PlayMode::interact() {
 	// -5 = opened, key #2
 
 
-	bool isDoor = (selected_row > 0) && (selected_col == 3 || selected_col == 4);
+	bool isDoor = (selected_row < 4) && (selected_col == 3 || selected_col == 4);
 
 	if (isDoor) {
 		if (item_index == 0) {
@@ -401,5 +514,7 @@ void PlayMode::interact() {
 		}
 		else assert(false); // should not reach here
 	}
+	
+	printf("%s \n", interaction_str.c_str());
 }
 
