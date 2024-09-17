@@ -38,35 +38,35 @@ Load< Scene > hexapod_scene(LoadTagDefault, []() -> Scene const * {
 
 /* All sound samples */
 Load< Sound::Sample > knock_door_sample(LoadTagDefault, []() -> Sound::Sample const* {
-	return new Sound::Sample(data_path("dusty-floor.opus"));
+	return new Sound::Sample(data_path("KnockDoor.wav"));
 	});
 
 Load< Sound::Sample > hit_door_sample(LoadTagDefault, []() -> Sound::Sample const* {
-	return new Sound::Sample(data_path("dusty-floor.opus"));
+	return new Sound::Sample(data_path("KnockDoorBar.wav"));
 	});
 
 Load< Sound::Sample > use_key_sample(LoadTagDefault, []() -> Sound::Sample const* {
-	return new Sound::Sample(data_path("dusty-floor.opus"));
+	return new Sound::Sample(data_path("UseKey.wav"));
 	});
 
 Load< Sound::Sample > knock_wall_sample(LoadTagDefault, []() -> Sound::Sample const* {
-	return new Sound::Sample(data_path("dusty-floor.opus"));
+	return new Sound::Sample(data_path("KnockSolid.wav"));
 	});
 
 Load< Sound::Sample > knock_wall_hollow_sample(LoadTagDefault, []() -> Sound::Sample const* {
-	return new Sound::Sample(data_path("dusty-floor.opus"));
+	return new Sound::Sample(data_path("KnockHollow.wav"));
 	});
 
 Load< Sound::Sample > knock_wall_safe_sample(LoadTagDefault, []() -> Sound::Sample const* {
-	return new Sound::Sample(data_path("dusty-floor.opus"));
+	return new Sound::Sample(data_path("KnockHollow.wav"));
 	});
 
 Load< Sound::Sample > open_wall_sample(LoadTagDefault, []() -> Sound::Sample const* {
-	return new Sound::Sample(data_path("dusty-floor.opus"));
+	return new Sound::Sample(data_path("UseBar.wav"));
 	});
 
 Load< Sound::Sample > collect_key_sample(LoadTagDefault, []() -> Sound::Sample const* {
-	return new Sound::Sample(data_path("dusty-floor.opus"));
+	return new Sound::Sample(data_path("GetKey.wav"));
 	});
 
 
@@ -111,6 +111,7 @@ PlayMode::PlayMode() : scene(*hexapod_scene) {
 
 	// move things offscreen
 	door_selector->position = out_of_screen;
+	door_base_rotation = door->rotation;
  
 	// find a box for key 1 and a box for key 2
 	int key1_box = 21;
@@ -231,20 +232,56 @@ void PlayMode::update(float elapsed) {
 
 	time += elapsed;
 
-	if (one.pressed) toggle_item(1);
-	else if (two.pressed) toggle_item(2);
-	else if (three.pressed) toggle_item(3);
-	else if (four.pressed) toggle_item(4);
+	if (playing) {
+		if (one.pressed) toggle_item(1);
+		else if (two.pressed) toggle_item(2);
+		else if (three.pressed) toggle_item(3);
+		else if (four.pressed) toggle_item(4);
 
-	// slow down toggle time - once every 0.075 s
-	if ((int)(time * 13) != increment) {
-		increment = (int)(time * 13);
-		toggle_wall(left.pressed, right.pressed, up.pressed, down.pressed);
-		if (space.pressed) interact();
+		// slow down toggle time - once every 0.075 s
+		if ((int)(time * 13) != increment) {
+			increment = (int)(time * 13);
+			toggle_wall(left.pressed, right.pressed, up.pressed, down.pressed);
+			if (space.pressed) interact();
+		}
+
+		if (crow_bar == 0 && !win && (!key1_found || !safe_found)) {
+			lose = true;
+			playing = false;
+			time = 0.f;
+		}
 	}
+	else if (win) {
+		if (time >= 5) {
+			lose = false;
+			playing = false;
+			win = false;
+			interaction_str = "The door is opening..Escape Successful!";
+		}
+		else {
+			// lerp open door
+			door->rotation = door_base_rotation * glm::angleAxis(
+				glm::radians(time * 15.f),
+				glm::vec3(0.0f, 0.0f, 1.0f)
+			);
+			interaction_str = "The door is opening..";
+		}
+		// lerp 
 
-	if (crow_bar == 0) {
-		// TODO: Game Over
+		
+	}
+	else if (lose) {
+		if (time >= 5) {
+			lose = false;
+			playing = false;
+			win = false;
+		}
+		else {
+			// lerp light to black
+			light_color = glm::vec3(1.f, 0.7f, .7f) * (1.f - (time / 5.f));
+			interaction_str = "Maybe I'll never find a way out.";
+		}
+		
 	}
 
 	//reset button press counters:
@@ -267,8 +304,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	//set up light type and position for lit_color_texture_program:
 	glUseProgram(lit_color_texture_program->program);
 	glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 1);
-	glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f,-1.0f)));
-	glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(glm::vec3(1.0f, 1.0f, 0.95f)));
+	glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 1.0f,0.f)));
+	glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(light_color));
 	glUseProgram(0);
 
 	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
@@ -290,16 +327,55 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			0.0f, 0.0f, 0.0f, 1.0f
 		));
 
-		constexpr float H = 0.09f;
-		lines.draw_text("Mouse motion rotates camera; WASD moves; escape ungrabs mouse",
-			glm::vec3(-aspect + 0.1f * H, -1.0 + 0.1f * H, 0.0),
+		float H = 0.04f;
+
+		// Item holder label
+		lines.draw_text("1 Hand",
+			glm::vec3(-aspect + 0.02f, 0.34f, 0.0),
+			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+			glm::u8vec4(0xff, 0xff, 0xff, 0xff));
+		std::string cb = "2 Crow Bar " + std::to_string(crow_bar) + "/7";
+		lines.draw_text(cb.c_str(),
+			glm::vec3(-aspect + 0.02f, 0.11f, 0.0),
+			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+			glm::u8vec4(0xff, 0xff, 0xff, 0xff));
+
+		if (item_list[2]) {
+			lines.draw_text("3 Shiny Key",
+				glm::vec3(-aspect + 0.02f, -0.11f, 0.0),
+				glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+				glm::u8vec4(0xff, 0xff, 0xff, 0xff));
+		}
+		if (item_list[3]) {
+			lines.draw_text("4 Rusty Key",
+				glm::vec3(-aspect + 0.02f, -0.36f, 0.0),
+				glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+				glm::u8vec4(0xff, 0xff, 0xff, 0xff));
+		}
+
+		// controlls
+		// Item holder label
+		H = 0.05f;
+		lines.draw_text("[Numbers] toggle item",
+			glm::vec3(-aspect + 0.02f, -0.9f, 0.0),
+			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H* 0.9f, 0.0f),
+			glm::u8vec4(0xff, 0xff, 0xff, 0xff));
+		lines.draw_text("[Arrows] move selector",
+			glm::vec3(-aspect + 0.02f, -0.7f, 0.0),
+			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+			glm::u8vec4(0xff, 0xff, 0xff, 0xff));
+		lines.draw_text("[Space] use item",
+			glm::vec3(-aspect + 0.02f, -0.8f, 0.0),
+			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+			glm::u8vec4(0xff, 0xff, 0xff, 0xff));
+		
+
+		// dialogue
+		lines.draw_text(interaction_str.c_str(),
+			glm::vec3(aspect - 1.f, -0.95f, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0x00, 0x00, 0x00, 0x00));
-		float ofs = 2.0f / drawable_size.y;
-		lines.draw_text("Mouse motion rotates camera; WASD moves; escape ungrabs mouse",
-			glm::vec3(-aspect + 0.1f * H + ofs, -1.0 + + 0.1f * H + ofs, 0.0),
-			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
-			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
+
 	}
 	GL_ERRORS();
 }
@@ -368,10 +444,6 @@ void PlayMode::toggle_wall(bool isLeft, bool isRight, bool isUp, bool isDown) {
 		+ (glm::vec3(0.f, 0.f, 1.f) * (float)selected_row)
 		+ (glm::vec3(1.f, 0.f, 0.f) * (float)selected_col);
 
-	printf("%d %d \n", selected_row, selected_col);
-
-	
-
 }
 
 /* Interact with something*/
@@ -397,9 +469,14 @@ void PlayMode::interact() {
 			interaction_str = "Maybe someone will open the door for me.";
 		}
 		else if (item_index == 1) {
-			crow_bar--;
-			sound_source = Sound::play(*hit_door_sample);
-			interaction_str = "This door is too sturdy. I should look for a key.";
+			if (crow_bar <= 0) {
+				interaction_str = "The crow bar broke. I can't use it anymore.";
+			}
+			else {
+				crow_bar--;
+				sound_source = Sound::play(*hit_door_sample);
+				interaction_str = "This door is too sturdy. I should look for a key.";
+			}
 		}
 		else if (item_index == 2) {
 			sound_source = Sound::play(*use_key_sample);
@@ -407,8 +484,10 @@ void PlayMode::interact() {
 		}
 		else if (item_index == 3) {
 			sound_source = Sound::play(*use_key_sample);
-			interaction_str = "It worked!";
-			// TODO: Game over.
+			interaction_str = "It worked! The door opened.";
+			playing = false;
+			win = true;
+			time = 0.f;
 		}
 		else assert(false); // should not reach here
 	}
@@ -459,14 +538,16 @@ void PlayMode::interact() {
 
 			else if (walls_occupied[wall_index] == -3) {
 				// try open safe
-				sound_source = Sound::play(*collect_key_sample);
 				interaction_str = "It's locked.";
 			}
 			
 		}
 		else if (item_index == 1) {
-			
-			if (walls_occupied[wall_index] == 0) {
+
+			if (crow_bar <= 0) {
+				interaction_str = "The crow bar broke. I can't use it anymore.";
+			}
+			else if (walls_occupied[wall_index] == 0) {
 				crow_bar--;
 
 				walls_occupied[wall_index] = -1;
@@ -489,6 +570,7 @@ void PlayMode::interact() {
 
 				sound_source = Sound::play(*open_wall_sample);
 				interaction_str = "There is a key here!";
+				key1_found = true;
 
 			}
 			else if (walls_occupied[wall_index] == 2) {
@@ -500,6 +582,7 @@ void PlayMode::interact() {
 
 				sound_source = Sound::play(*open_wall_sample);
 				interaction_str = "There is a safe here!";
+				safe_found = true;
 
 			}
 			else if (walls_occupied[wall_index] == 3) {
@@ -514,6 +597,8 @@ void PlayMode::interact() {
 			}
 			else if (walls_occupied[wall_index] == -3) {
 				crow_bar--;
+				sound_source = Sound::play(*hit_door_sample);
+
 				interaction_str = "This safe is too sturdy. I should look for a key.";
 			}
 			else if (walls_occupied[wall_index] < 0) {
@@ -528,6 +613,8 @@ void PlayMode::interact() {
 				sound_source = Sound::play(*use_key_sample);
 				safe->position += out_of_screen;
 				interaction_str = "The safe opened!";
+				key2_found = true;
+
 			}
 
 			else {
@@ -541,6 +628,5 @@ void PlayMode::interact() {
 		else assert(false); // should not reach here
 	}
 	
-	printf("%s \n", interaction_str.c_str());
 }
 

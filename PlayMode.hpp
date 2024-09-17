@@ -54,7 +54,7 @@ struct PlayMode : Mode {
 
 	std::vector<bool> item_list;
 	int item_index = 0;
-	int crow_bar = 5;
+	int crow_bar = 7;
 
 	glm::vec3 out_of_screen = glm::vec3(0.f, -30.f, 0.f);
 
@@ -69,9 +69,18 @@ struct PlayMode : Mode {
 	//camera:
 	Scene::Camera *camera = nullptr;
 
+	bool safe_found = false;
+	bool key1_found = false;
+	bool key2_found = false;
+
+	bool playing = true;
+	bool win = false;
+	glm::quat door_base_rotation;
+	bool lose = false;
+	glm::vec3 light_color = glm::vec3(1.0f, 1.0f, 1.f);
 
 	// functions
-	std::string interaction_str = "";
+	std::string interaction_str = "Where is this? I need to get out.";
 	void interact();
 
 	/* Convert row col to wall index because they don't correspond to each other :(*/
