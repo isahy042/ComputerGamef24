@@ -77,8 +77,7 @@ struct PlayMode : Mode {
 	bool win = false;
 	glm::quat door_base_rotation;
 	bool lose = false;
-	glm::vec3 light_color = glm::vec3(1.0f, 1.0f, 1.f);
-
+	glm::vec3 light_color = glm::vec3(.7f);
 	// functions
 	std::string interaction_str = "Where is this? I need to get out.";
 	void interact();

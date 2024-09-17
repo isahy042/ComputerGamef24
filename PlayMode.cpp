@@ -113,11 +113,12 @@ PlayMode::PlayMode() : scene(*hexapod_scene) {
 	door_selector->position = out_of_screen;
 	door_base_rotation = door->rotation;
  
+	// this can be easily randomized for better effect, but hardcoding it for easy replay and debug
 	// find a box for key 1 and a box for key 2
-	int key1_box = 21;
-	int key2_box = 10;
+	int key1_box = 7;
+	int key2_box = 17;
 
-	// find two random box that will be empty
+	// two boxes that will be empty
 	int emp1 = 5;
 	int emp2 = 11;
 
@@ -136,9 +137,6 @@ PlayMode::PlayMode() : scene(*hexapod_scene) {
 	if (scene.cameras.size() != 1) throw std::runtime_error("Expecting scene to have exactly one camera, but it has " + std::to_string(scene.cameras.size()));
 	camera = &scene.cameras.front();
 
-	////start music loop playing:
-	//// (note: position will be over-ridden in update())
-	//sound_source = Sound::play(*dusty_floor_sample, 1.0f, get_leg_tip_position(), 10.0f);
 }
 
 PlayMode::~PlayMode() {
@@ -278,7 +276,7 @@ void PlayMode::update(float elapsed) {
 		}
 		else {
 			// lerp light to black
-			light_color = glm::vec3(1.f, 0.7f, .7f) * (1.f - (time / 5.f));
+			light_color = glm::vec3(.7f, .4f, .4f) * (1.f - (time / 5.f));
 			interaction_str = "Maybe I'll never find a way out.";
 		}
 		
@@ -304,7 +302,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	//set up light type and position for lit_color_texture_program:
 	glUseProgram(lit_color_texture_program->program);
 	glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 1);
-	glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 1.0f,0.f)));
+	glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.7f,-0.71f)));
 	glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(light_color));
 	glUseProgram(0);
 
