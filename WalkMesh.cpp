@@ -42,8 +42,21 @@ WalkMesh::WalkMesh(std::vector< glm::vec3 > const &vertices_, std::vector< glm::
 
 //project pt to the plane of triangle a,b,c and return the barycentric weights of the projected point:
 glm::vec3 barycentric_weights(glm::vec3 const &a, glm::vec3 const &b, glm::vec3 const &c, glm::vec3 const &pt) {
-	//TODO: implement!
-	return glm::vec3(0.25f, 0.25f, 0.5f);
+
+	// get normal
+	glm::vec3 normal = glm::normalize(glm::cross(b - a, c - a));
+
+	// get closest distance to plane, move pt onto triangle
+	glm::vec3 pt_on_triangle = pt - (glm::dot(normal, pt - a) * normal);
+
+	// use formula where the weight are the ratio of triangles
+	float area = glm::length(glm::cross(b - a, c - a));
+
+	float area1 = glm::length(glm::cross(b - pt_on_triangle, c - pt_on_triangle));
+	float area2 = glm::length(glm::cross(a - pt_on_triangle, c - pt_on_triangle));
+	float area3 = glm::length(glm::cross(a - pt_on_triangle, b - pt_on_triangle));
+
+	return glm::vec3(area1/area, area2/area, area3/area);
 }
 
 WalkPoint WalkMesh::nearest_walk_point(glm::vec3 const &world_point) const {
@@ -120,10 +133,23 @@ void WalkMesh::walk_in_triangle(WalkPoint const &start, glm::vec3 const &step, W
 	assert(time_);
 	auto &time = *time_;
 
+	
+
 	glm::vec3 step_coords;
 	{ //project 'step' into a barycentric-coordinates direction:
-		//TODO
-		step_coords = glm::vec3(0.0f);
+
+		// get vertices of current triangle
+		glm::vec3 const& a = vertices[start.indices.x];
+		glm::vec3 const& b = vertices[start.indices.y];
+		glm::vec3 const& c = vertices[start.indices.z];
+
+		// get barycentric coordinate of new position
+		glm::vec3 p = to_world_point(start);
+		glm::vec3 new_w = barycentric_weights(a, b, c, p + step);
+
+		// get change in coordinates
+		step_coords = new_w - start.weights;
+
 	}
 	
 	//if no edge is crossed, event will just be taking the whole step:
@@ -133,6 +159,17 @@ void WalkMesh::walk_in_triangle(WalkPoint const &start, glm::vec3 const &step, W
 	//figure out which edge (if any) is crossed first.
 	// set time and end appropriately.
 	//TODO
+
+	glm::vec3 new_weights = start.weights + step_coords;
+
+
+
+	
+
+	// If no edge is crossed, take the whole step
+	if (time == 1.0f) {
+		end.weights = new_weights;
+	}
 
 	//Remember: our convention is that when a WalkPoint is on an edge,
 	// then wp.weights.z == 0.0f (so will likely need to re-order the indices)
