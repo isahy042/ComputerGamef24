@@ -65,22 +65,21 @@ glm::vec3 barycentric_weights(glm::vec3 const &a, glm::vec3 const &b, glm::vec3 
 	return glm::vec3(u, v, w);
 }
 
+// TODO: Cite source and comment
 glm::quat rotationFromAtoB(const glm::vec3 A, const glm::vec3 B) {
-	// Normalize both input vectors
+
+	// normalize normals
 	glm::vec3 aNorm = glm::normalize(A);
 	glm::vec3 bNorm = glm::normalize(B);
 
-	// Calculate the dot product between the vectors
+	// dot product between the vectors
 	float dot = glm::dot(aNorm, bNorm);
-
-	// If the vectors are already aligned (dot == 1), return an identity quaternion (no rotation)
-	if (dot > 0.9999f) {
-		return glm::quat(1.0f, 0.0f, 0.0f, 0.0f); // Identity quaternion
+	
+	if (dot > 0.999f) {
+		return glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 	}
 
-	// If the vectors are opposite, choose an arbitrary perpendicular axis and rotate by 180 degrees
 	if (dot < -0.9999f) {
-		// Find a perpendicular vector to A (arbitrary, so choose any axis)
 		glm::vec3 axis = glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), aNorm);
 		if (glm::length(axis) < 0.0001f) {
 			axis = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), aNorm);
@@ -89,13 +88,11 @@ glm::quat rotationFromAtoB(const glm::vec3 A, const glm::vec3 B) {
 		return glm::angleAxis(glm::pi<float>(), axis); // 180 degrees rotation
 	}
 
-	// Calculate the axis of rotation using the cross product
+	// Calculate the axis of rotation
 	glm::vec3 rotationAxis = glm::normalize(glm::cross(aNorm, bNorm));
-
 	// Calculate the angle between the vectors
 	float angle = acosf(dot);
 
-	// Return the quaternion representing the rotation
 	return glm::angleAxis(angle, rotationAxis);
 }
 
@@ -275,14 +272,15 @@ bool WalkMesh::cross_edge(WalkPoint const &start, WalkPoint *end_, glm::quat *ro
 		if (abs(end.weights.z) < 0.0001f) end.weights.z = 0.f;
 		end.weights = normalizeSum(end.weights);
 
-
 		//make 'rotation' the rotation that takes (start.indices)'s normal to (end.indices)'s normal:
 		//TODO
-		glm::vec3 const& pt1 = to_world_point(end);
-		rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);;//rotationFromAtoB();
+		rotation = rotationFromAtoB(glm::cross(a-b, c-b), glm::cross(b-a, vertices[start.indices.z]-a));
 		printf("went from triangle %d %d %d to %d %d %d with rotation %f %f %f %f \n ", start.indices.x, start.indices.y, start.indices.z, 
 			edge.x, edge.y, vertz, 
 			rotation.x, rotation.y, rotation.z, rotation.w);
+		pv3(start.weights, "weight before");
+		pv3(end.weights, "weight after");
+
 		return true;
 
 	} else {
