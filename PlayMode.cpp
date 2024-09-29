@@ -170,6 +170,7 @@ void PlayMode::update(float elapsed) {
 			remain *= (1.0f - time);
 			//try to step over edge:
 			glm::quat rotation;
+			
 			if (walkmesh->cross_edge(player.at, &end, &rotation)) {
 				//stepped to a new triangle:
 				player.at = end;

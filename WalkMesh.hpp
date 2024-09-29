@@ -90,6 +90,17 @@ struct WalkMesh {
 		return glm::normalize( glm::cross( b-a, c-a ) );
 	}
 
+	// maintain property of barycentric coordinates
+	glm::vec3 inline normalizeSum(glm::vec3 const v) const {
+		float sum = v.x + v.y + v.z;
+		assert(sum > 0.f);
+		return glm::vec3(v.x / sum, v.y / sum, v.z / sum);
+	}
+
+	void pv3(glm::vec3 const v, std::string const s) const {
+		printf(s.c_str()); printf(": %f %f %f \n", v.x, v.y, v.z);
+	}
+
 };
 
 struct WalkMeshes {
@@ -102,3 +113,4 @@ struct WalkMeshes {
 	//internals:
 	std::unordered_map< std::string, WalkMesh > meshes;
 };
+
