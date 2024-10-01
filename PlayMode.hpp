@@ -17,6 +17,10 @@ struct PlayMode : Mode {
 	virtual void update(float elapsed) override;
 	virtual void draw(glm::uvec2 const &drawable_size) override;
 
+	void pv3(glm::vec3 const v, std::string const s) const {
+		printf(s.c_str()); printf(": %f %f %f \n", v.x, v.y, v.z);
+	}
+
 	//----- game state -----
 
 	//input tracking:

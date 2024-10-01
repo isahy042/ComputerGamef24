@@ -192,6 +192,7 @@ void WalkMesh::walk_in_triangle(WalkPoint const &start, glm::vec3 const &step, W
 	//TODO
 
 	pv3(start.weights, "w");
+	pv3(step_coords, "stepcords");
 	// if there is already a zero, we're on edge or corner
 	if ((start.weights.x <= 0.f && step_coords.x < 0.f) ||
 		(start.weights.y <= 0.f && step_coords.y < 0.f) ||
@@ -202,12 +203,16 @@ void WalkMesh::walk_in_triangle(WalkPoint const &start, glm::vec3 const &step, W
 	}
 
 	glm::vec3 new_weights = start.weights + step_coords;
+	pv3(new_weights, "newwights");
+	pv3(start.weights, "start weights");
+
+	end.weights = new_weights;
 
 	// Crossed bc, move index 0 to back
 	if (new_weights.x < 0.0f ) {
 		float t = abs(new_weights.x / step_coords.x);
-		time = t;
-		end.weights = start.weights + t * step_coords;
+		time -= t;
+		end.weights = start.weights + time * step_coords;
 		end.weights.x = 0.0f;
 		end.weights = normalizeSum(glm::vec3(end.weights.y, end.weights.z, end.weights.x));
 		end.indices = glm::uvec3(start.indices.y, start.indices.z, start.indices.x);
@@ -216,8 +221,8 @@ void WalkMesh::walk_in_triangle(WalkPoint const &start, glm::vec3 const &step, W
 	// Crossed ac, move index 1 to back
 	if (new_weights.y < 0.0f) {
 		float t = abs(new_weights.y / step_coords.y);
-		time = t;
-		end.weights = start.weights + t * step_coords;
+		time -= t;
+		end.weights = start.weights + time * step_coords;
 		end.weights.y = 0.0f;
 		end.weights = normalizeSum(glm::vec3(end.weights.z, end.weights.x, end.weights.y));
 		end.indices = glm::uvec3(start.indices.z, start.indices.x, start.indices.y);
@@ -226,19 +231,16 @@ void WalkMesh::walk_in_triangle(WalkPoint const &start, glm::vec3 const &step, W
 	// Crossed ab
 	if (new_weights.z < 0.0f) {
 		float t = abs(new_weights.z / step_coords.z);
-		time = t;
-		end.weights = start.weights + t * step_coords;
+		time -= t;
+		end.weights = start.weights + time * step_coords;
 		end.weights.z = 0.0f; 
 		end.weights = normalizeSum(end.weights);
 		// end.indices = glm::uvec3(start.indices.x, start.indices.y, start.indices.z);
 	}
 
-	// If no edge is crossed, take the whole step
-	if (time == 1.0f) {
-		end.weights = new_weights;
-	}
-
-
+	printf("time %f \n", time);
+	pv3(to_world_point(end), "end");
+	pv3(end.weights, "end weights");
 	//Remember: our convention is that when a WalkPoint is on an edge,
 	// then wp.weights.z == 0.0f (so will likely need to re-order the indices)
 }
@@ -275,6 +277,11 @@ bool WalkMesh::cross_edge(WalkPoint const &start, WalkPoint *end_, glm::quat *ro
 		//make 'rotation' the rotation that takes (start.indices)'s normal to (end.indices)'s normal:
 		//TODO
 		rotation = rotationFromAtoB(glm::cross(a-b, c-b), glm::cross(b-a, vertices[start.indices.z]-a));
+		pv3(vertices[start.indices.x], "1");
+		pv3(vertices[start.indices.y], "2");
+		pv3(vertices[start.indices.z], "3");
+		pv3(vertices[vertz], "4");
+		/*pv3("");*/
 		printf("went from triangle %d %d %d to %d %d %d with rotation %f %f %f %f \n ", start.indices.x, start.indices.y, start.indices.z, 
 			edge.x, edge.y, vertz, 
 			rotation.x, rotation.y, rotation.z, rotation.w);
