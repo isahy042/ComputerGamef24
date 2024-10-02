@@ -15,13 +15,13 @@
 
 GLuint phonebank_meshes_for_lit_color_texture_program = 0;
 Load< MeshBuffer > phonebank_meshes(LoadTagDefault, []() -> MeshBuffer const * {
-	MeshBuffer const *ret = new MeshBuffer(data_path("phone-bank.pnct"));
+	MeshBuffer const *ret = new MeshBuffer(data_path("bicycle.pnct"));
 	phonebank_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
 	return ret;
 });
 
 Load< Scene > phonebank_scene(LoadTagDefault, []() -> Scene const * {
-	return new Scene(data_path("phone-bank.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
+	return new Scene(data_path("bicycle.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
 		Mesh const &mesh = phonebank_meshes->lookup(mesh_name);
 
 		scene.drawables.emplace_back(transform);
@@ -39,10 +39,14 @@ Load< Scene > phonebank_scene(LoadTagDefault, []() -> Scene const * {
 
 WalkMesh const *walkmesh = nullptr;
 Load< WalkMeshes > phonebank_walkmeshes(LoadTagDefault, []() -> WalkMeshes const * {
-	WalkMeshes *ret = new WalkMeshes(data_path("phone-bank.w"));
+	WalkMeshes *ret = new WalkMeshes(data_path("bicycle.w"));
 	walkmesh = &ret->lookup("WalkMesh");
 	return ret;
 });
+
+Load< Sound::Sample > ring_sound(LoadTagDefault, []() -> Sound::Sample const* {
+	return new Sound::Sample(data_path("Ring.wav"));
+	});
 
 PlayMode::PlayMode() : scene(*phonebank_scene) {
 	//create a player transform:
@@ -57,14 +61,38 @@ PlayMode::PlayMode() : scene(*phonebank_scene) {
 	player.camera->near = 0.01f;
 	player.camera->transform->parent = player.transform;
 
-	//player's eyes are 1.8 units above the ground:
-	player.camera->transform->position = glm::vec3(0.0f, 0.0f, 1.8f);
+	//player's eyes are 1.3 units above the ground:
+	player.camera->transform->position = glm::vec3(0.0f, 0.0f, 1.3f);
 
 	//rotate camera facing direction (-z) to player facing direction (+y):
 	player.camera->transform->rotation = glm::angleAxis(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	player.transform->rotation = glm::quat(-0.7263f, 0.0f, 0.0f, 0.687300f);
 
 	//start player walking at nearest walk point:
 	player.at = walkmesh->nearest_walk_point(player.transform->position);
+
+	for (auto& transform : scene.transforms) {
+		if (transform.name == "Sphere") spheres[0] = &transform;
+		else if (transform.name == "Sphere1") spheres[1] = &transform;
+		else if (transform.name == "Sphere2") spheres[2] = &transform;
+		else if (transform.name == "Stick") sticks[0] = &transform;
+		else if (transform.name == "Stick1") sticks[1] = &transform;
+		else if (transform.name == "Stick2") sticks[2] = &transform;
+		else if (transform.name == "Player") { 
+			// attach bicycle to player
+			transform.position += glm::vec3(0.f,0.4f, 0.8f);
+			transform.rotation *= glm::angleAxis(
+				glm::radians(90.f),
+				glm::vec3(0.0f, 0.0f, 1.0f));
+			transform.parent = player.transform;
+		}
+	}
+
+	for (int i = 0; i < 3; i++) {
+		sticks_rot[i] = sticks[i]->rotation;
+		spheres[i]->parent = sticks[i];
+		spheres[i]->position -= glm::vec3(0.f, 0.f, 2.f);
+	}
 
 }
 
@@ -77,13 +105,9 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 		if (evt.key.keysym.sym == SDLK_ESCAPE) {
 			SDL_SetRelativeMouseMode(SDL_FALSE);
 			return true;
-		} else if (evt.key.keysym.sym == SDLK_a) {
-			left.downs += 1;
-			left.pressed = true;
-			return true;
-		} else if (evt.key.keysym.sym == SDLK_d) {
-			right.downs += 1;
-			right.pressed = true;
+		} else if (evt.key.keysym.sym == SDLK_r) {
+			r.downs += 1;
+			r.pressed = true;
 			return true;
 		} else if (evt.key.keysym.sym == SDLK_w) {
 			up.downs += 1;
@@ -93,19 +117,24 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			down.downs += 1;
 			down.pressed = true;
 			return true;
+		} else if (evt.key.keysym.sym == SDLK_SPACE) {
+			space.downs += 1;
+			space.pressed = true;
+			return true;
 		}
 	} else if (evt.type == SDL_KEYUP) {
-		if (evt.key.keysym.sym == SDLK_a) {
-			left.pressed = false;
-			return true;
-		} else if (evt.key.keysym.sym == SDLK_d) {
-			right.pressed = false;
+		if (evt.key.keysym.sym == SDLK_r) {
+			r.pressed = false;
 			return true;
 		} else if (evt.key.keysym.sym == SDLK_w) {
 			up.pressed = false;
 			return true;
 		} else if (evt.key.keysym.sym == SDLK_s) {
 			down.pressed = false;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_SPACE) {
+			space.pressed = false;
 			return true;
 		}
 	} else if (evt.type == SDL_MOUSEBUTTONDOWN) {
@@ -137,22 +166,34 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 }
 
 void PlayMode::update(float elapsed) {
-	//player walking:
+	//rotate balls
+	if (space.pressed) sound_source = Sound::play(*ring_sound);
+	if (playing > 0) {
+	seconds += elapsed;
+	for (int i = 0; i < 3; i++) {
+		sticks[i]->rotation = sticks_rot[i] * glm::angleAxis(
+			glm::radians(sin((seconds + i)) * 40.f),
+			glm::vec3(1.0f, 0.0f, 0.0f));
+		glm::vec3 ballPos = ChildWorldPos(sticks[i]->position, spheres[i]->position, sticks[i]->rotation);
+		if (glm::distance(ballPos, player.transform->position + glm::vec3(0.f,0.f,1.6f)) < 1.2f) { 
+			playing = -1; 
+			return;
+		}
+	}
+
+	//player biking
 	{
-		//combine inputs into a move:
-		constexpr float PlayerSpeed = 3.0f;
-		glm::vec2 move = glm::vec2(0.0f);
-		if (left.pressed && !right.pressed) move.x =-1.0f;
-		if (!left.pressed && right.pressed) move.x = 1.0f;
-		if (down.pressed && !up.pressed) move.y =-1.0f;
-		if (!down.pressed && up.pressed) move.y = 1.0f;
+		if (down.pressed && !up.pressed) speed -= elapsed;
+		if (!down.pressed && up.pressed) speed += elapsed;
 
-		//make it so that moving diagonally doesn't go faster:
-		if (move != glm::vec2(0.0f)) move = glm::normalize(move) * PlayerSpeed * elapsed;
-
+		if (speed != 0) {
+			speed = (speed > 1.f) ? 1.f : speed;
+			speed = (speed < -1.f) ? -1.f : speed;
+			speed = (speed > 0) ? std::max(0.f, speed - elapsed * 0.1f) : std::min(0.f, speed + elapsed * 0.1f);
+		}
+		
 		//get move in world coordinate system:
-		glm::vec3 remain = player.transform->make_local_to_world() * glm::vec4(move.x, move.y, 0.0f, 0.0f);
-
+		glm::vec3 remain = player.transform->make_local_to_world() * glm::vec4(0.0f, speed, 0.0f, 0.0f);
 		//using a for() instead of a while() here so that if walkpoint gets stuck in
 		// some awkward case, code will not infinite loop:
 		for (uint32_t iter = 0; iter < 10; ++iter) {
@@ -170,19 +211,21 @@ void PlayMode::update(float elapsed) {
 			remain *= (1.0f - time);
 			//try to step over edge:
 			glm::quat rotation;
-			
+
 			if (walkmesh->cross_edge(player.at, &end, &rotation)) {
 				//stepped to a new triangle:
 				player.at = end;
 				//rotate step to follow surface:
 				remain = rotation * remain;
-			} else {
+
+			}
+			else {
 				//ran into a wall, bounce / slide along it:
-				glm::vec3 const &a = walkmesh->vertices[player.at.indices.x];
-				glm::vec3 const &b = walkmesh->vertices[player.at.indices.y];
-				glm::vec3 const &c = walkmesh->vertices[player.at.indices.z];
-				glm::vec3 along = glm::normalize(b-a);
-				glm::vec3 normal = glm::normalize(glm::cross(b-a, c-a));
+				glm::vec3 const& a = walkmesh->vertices[player.at.indices.x];
+				glm::vec3 const& b = walkmesh->vertices[player.at.indices.y];
+				glm::vec3 const& c = walkmesh->vertices[player.at.indices.z];
+				glm::vec3 along = glm::normalize(b - a);
+				glm::vec3 normal = glm::normalize(glm::cross(b - a, c - a));
 				glm::vec3 in = glm::cross(normal, along);
 
 				//check how much 'remain' is pointing out of the triangle:
@@ -190,7 +233,8 @@ void PlayMode::update(float elapsed) {
 				if (d < 0.0f) {
 					//bounce off of the wall:
 					remain += (-1.25f * d) * in;
-				} else {
+				}
+				else {
 					//if it's just pointing along the edge, bend slightly away from wall:
 					remain += 0.01f * d * in;
 				}
@@ -205,12 +249,16 @@ void PlayMode::update(float elapsed) {
 		player.transform->position = walkmesh->to_world_point(player.at);
 
 		{ //update player's rotation to respect local (smooth) up-vector:
-			
+
 			glm::quat adjust = glm::rotation(
 				player.transform->rotation * glm::vec3(0.0f, 0.0f, 1.0f), //current up vector
 				walkmesh->to_world_smooth_normal(player.at) //smoothed up vector at walk location
 			);
 			player.transform->rotation = glm::normalize(adjust * player.transform->rotation);
+		}
+
+		if (player.transform->position.x >= 62.8f) {
+			playing = 0;
 		}
 
 		/*
@@ -222,12 +270,31 @@ void PlayMode::update(float elapsed) {
 		camera->transform->position += move.x * right + move.y * forward;
 		*/
 	}
-
+	}
+	else if (playing == -1) {
+		// lose
+		finalstr = "YOU GOT HIT BY A HUGE HEAVY METAL BALL :(";
+		hs = (highScore < 0) ? "High Score: Death via Metal Ball" : hs;
+		if (r.pressed) {
+			ResetGame();
+			player.at = walkmesh->nearest_walk_point(player.transform->position);
+		}
+	}
+	else if (playing == 0) {
+		// win
+		finalstr = "SUCCESS!!!";
+		highScore = (highScore < 0) ? seconds : std::min(highScore, seconds);
+		hs = "High Score: " + std::to_string(highScore);
+		if (r.pressed) {
+			ResetGame();
+			player.at = walkmesh->nearest_walk_point(player.transform->position);
+		}
+	}
 	//reset button press counters:
-	left.downs = 0;
-	right.downs = 0;
+	r.downs = 0;
 	up.downs = 0;
 	down.downs = 0;
+	space.downs = 0;
 }
 
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
@@ -251,18 +318,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 	scene.draw(*player.camera);
 
-	/* In case you are wondering if your walkmesh is lining up with your scene, try:
-	{
-		glDisable(GL_DEPTH_TEST);
-		DrawLines lines(player.camera->make_projection() * glm::mat4(player.camera->transform->make_world_to_local()));
-		for (auto const &tri : walkmesh->triangles) {
-			lines.draw(walkmesh->vertices[tri.x], walkmesh->vertices[tri.y], glm::u8vec4(0x88, 0x00, 0xff, 0xff));
-			lines.draw(walkmesh->vertices[tri.y], walkmesh->vertices[tri.z], glm::u8vec4(0x88, 0x00, 0xff, 0xff));
-			lines.draw(walkmesh->vertices[tri.z], walkmesh->vertices[tri.x], glm::u8vec4(0x88, 0x00, 0xff, 0xff));
-		}
-	}
-	*/
-
 	{ //use DrawLines to overlay some text:
 		glDisable(GL_DEPTH_TEST);
 		float aspect = float(drawable_size.x) / float(drawable_size.y);
@@ -273,16 +328,36 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			0.0f, 0.0f, 0.0f, 1.0f
 		));
 
-		constexpr float H = 0.09f;
-		lines.draw_text("Mouse motion looks; WASD moves; escape ungrabs mouse",
-			glm::vec3(-aspect + 0.1f * H, -1.0 + 0.1f * H, 0.0),
-			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+	
+		lines.draw_text("Use Mouse to adjust orientation, [W] [S] to pedal front and back",
+			glm::vec3(-aspect + 0.1f, -1.0 + 0.05f, 0.0),
+			glm::vec3(0.1f, 0.0f, 0.0f), glm::vec3(0.0f, 0.1f, 0.0f),
 			glm::u8vec4(0x00, 0x00, 0x00, 0x00));
-		float ofs = 2.0f / drawable_size.y;
-		lines.draw_text("Mouse motion looks; WASD moves; escape ungrabs mouse",
-			glm::vec3(-aspect + 0.1f * H + ofs, -1.0 + + 0.1f * H + ofs, 0.0),
-			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+		lines.draw_text(hs.c_str(),
+			glm::vec3(-aspect + 0.1f, -1.0 + 0.18f, 0.0),
+			glm::vec3(0.1f, 0.0f, 0.0f), glm::vec3(0.0f, 0.1f, 0.0f),
 			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
+
+
+		if (playing == 0) {
+			lines.draw_text(finalstr.c_str(),
+				glm::vec3(-aspect/2.f , 0.f ,0.f),
+				glm::vec3(.5f, 0.0f, 0.0f), glm::vec3(0.0f, .5f, 0.0f),
+				glm::u8vec4(0xff, 0xff, 0xff, 0x00));
+			lines.draw_text("[R] to restart",
+				glm::vec3(-aspect + 0.1f, -1.0 + 0.3f, 0.0),
+				glm::vec3(0.08f, 0.0f, 0.0f), glm::vec3(0.0f, 0.08f, 0.0f),
+				glm::u8vec4(0x00, 0x00, 0x00, 0x00));
+		} else if (playing == -1) {
+			lines.draw_text(finalstr.c_str(),
+				glm::vec3(-aspect + 0.1f, 0.f, 0.f),
+				glm::vec3(.2f, 0.0f, 0.0f), glm::vec3(0.0f, .2f, 0.0f),
+				glm::u8vec4(0xff, 0xff, 0xff, 0x00));
+			lines.draw_text("[R] to restart",
+				glm::vec3(-aspect + 0.1f, -1.0 + 0.3f, 0.0),
+				glm::vec3(0.08f, 0.0f, 0.0f), glm::vec3(0.0f, 0.08f, 0.0f),
+				glm::u8vec4(0x00, 0x00, 0x00, 0x00));
+		}
 	}
 	GL_ERRORS();
 }

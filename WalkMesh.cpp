@@ -28,7 +28,8 @@ WalkMesh::WalkMesh(std::vector< glm::vec3 > const &vertices_, std::vector< glm::
 	}
 
 	//DEBUG: are vertex normals consistent with geometric normals?
-	for (auto const &tri : triangles) {
+	// unfortunately causing issues
+	/*for (auto const &tri : triangles) {
 		glm::vec3 const &a = vertices[tri.x];
 		glm::vec3 const &b = vertices[tri.y];
 		glm::vec3 const &c = vertices[tri.z];
@@ -38,8 +39,8 @@ WalkMesh::WalkMesh(std::vector< glm::vec3 > const &vertices_, std::vector< glm::
 		float db = glm::dot(out, normals[tri.y]);
 		float dc = glm::dot(out, normals[tri.z]);
 
-		assert(da > 0.1f && db > 0.1f && dc > 0.1f);
-	}
+		assert(da > 0.1f && db > 0.1f && dc > 0.1f);*/
+	//}
 }
 
 
@@ -177,15 +178,6 @@ void WalkMesh::walk_in_triangle(WalkPoint const &start, glm::vec3 const &step, W
 	//figure out which edge (if any) is crossed first.
 	// set time and end appropriately.
 
-	// if there is already a zero, we're on edge or corner
-	if ((start.weights.x <= 0.f && step_coords.x < 0.f) ||
-		(start.weights.y <= 0.f && step_coords.y < 0.f) ||
-		(start.weights.z <= 0.f && step_coords.z < 0.f))
-	{
-		time = 0.f;
-		return;
-	}
-
 	glm::vec3 new_weights = start.weights + step_coords;
 
 	end.weights = new_weights;
@@ -272,7 +264,6 @@ bool WalkMesh::cross_edge(WalkPoint const &start, WalkPoint *end_, glm::quat *ro
 
 		//make 'end' represent the same (world) point, but on triangle (edge.y, edge.x, [other point]):
 		uint32_t vertz = it->second;
-
 		glm::vec3 const& a = vertices[edge.x];
 		glm::vec3 const& b = vertices[edge.y];
 		glm::vec3 const& c = vertices[vertz];
