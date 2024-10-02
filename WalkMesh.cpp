@@ -65,34 +65,21 @@ glm::vec3 barycentric_weights(glm::vec3 const &a, glm::vec3 const &b, glm::vec3 
 	return glm::vec3(u, v, w);
 }
 
-// TODO: Cite source and comment
-glm::quat rotationFromAtoB(const glm::vec3 A, const glm::vec3 B) {
-
-	// normalize normals
-	glm::vec3 aNorm = glm::normalize(A);
-	glm::vec3 bNorm = glm::normalize(B);
+// similar to https://www.gamedev.net/forums/topic/667379-make-an-object-rotate-to-face-a-vector-opengl-3d/
+glm::quat rotateNormal(const glm::vec3 fromN, const glm::vec3 toN) {
 
 	// dot product between the vectors
-	float dot = glm::dot(aNorm, bNorm);
+	float dot = glm::dot(fromN, toN);
 	
-	if (dot > 0.999f) {
+	// no rotation needed
+	if (dot > 0.99f) {
 		return glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 	}
 
-	if (dot < -0.9999f) {
-		glm::vec3 axis = glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), aNorm);
-		if (glm::length(axis) < 0.0001f) {
-			axis = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), aNorm);
-		}
-		axis = glm::normalize(axis);
-		return glm::angleAxis(glm::pi<float>(), axis); // 180 degrees rotation
-	}
-
-	// Calculate the axis of rotation
-	glm::vec3 rotationAxis = glm::normalize(glm::cross(aNorm, bNorm));
-	// Calculate the angle between the vectors
+	// calculate the axis of rotation
+	glm::vec3 rotationAxis = glm::normalize(glm::cross(fromN, toN));
+	// calculate the angle between the vectors
 	float angle = acosf(dot);
-
 	return glm::angleAxis(angle, rotationAxis);
 }
 
@@ -189,10 +176,7 @@ void WalkMesh::walk_in_triangle(WalkPoint const &start, glm::vec3 const &step, W
 
 	//figure out which edge (if any) is crossed first.
 	// set time and end appropriately.
-	//TODO
 
-	pv3(start.weights, "w");
-	pv3(step_coords, "stepcords");
 	// if there is already a zero, we're on edge or corner
 	if ((start.weights.x <= 0.f && step_coords.x < 0.f) ||
 		(start.weights.y <= 0.f && step_coords.y < 0.f) ||
@@ -203,13 +187,42 @@ void WalkMesh::walk_in_triangle(WalkPoint const &start, glm::vec3 const &step, W
 	}
 
 	glm::vec3 new_weights = start.weights + step_coords;
-	pv3(new_weights, "newwights");
-	pv3(start.weights, "start weights");
 
 	end.weights = new_weights;
 
+	// find first edge crossed
+	int first_edge = -1;
+	float temp_t = 2.f; 
+	if (new_weights.x < 0.0f) {
+		first_edge = 0;
+		temp_t = abs(new_weights.x / step_coords.x);
+		if (new_weights.y < 0.0f) {
+			if (temp_t > abs(new_weights.y / step_coords.y)) {
+				first_edge = 1;
+				temp_t = abs(new_weights.y / step_coords.y);
+			}
+		}
+		if (new_weights.z < 0.0f) {
+			if (temp_t > abs(new_weights.z / step_coords.z)) {
+				first_edge = 2;
+			}
+		}
+	}
+	else if (new_weights.y < 0.0f) {
+		first_edge = 1;
+		temp_t = abs(new_weights.y / step_coords.y);
+		if (new_weights.z < 0.0f) {
+			if (temp_t > abs(new_weights.z / step_coords.z)) {
+				first_edge = 2;
+			}
+		}
+	}
+	else if (new_weights.z < 0.0f) {
+		first_edge = 2;
+	}
+
 	// Crossed bc, move index 0 to back
-	if (new_weights.x < 0.0f ) {
+	if (first_edge == 0) {
 		float t = abs(new_weights.x / step_coords.x);
 		time -= t;
 		end.weights = start.weights + time * step_coords;
@@ -219,7 +232,7 @@ void WalkMesh::walk_in_triangle(WalkPoint const &start, glm::vec3 const &step, W
 	}
 
 	// Crossed ac, move index 1 to back
-	if (new_weights.y < 0.0f) {
+	else if (first_edge == 1) {
 		float t = abs(new_weights.y / step_coords.y);
 		time -= t;
 		end.weights = start.weights + time * step_coords;
@@ -229,7 +242,7 @@ void WalkMesh::walk_in_triangle(WalkPoint const &start, glm::vec3 const &step, W
 	}
 
 	// Crossed ab
-	if (new_weights.z < 0.0f) {
+	else if (first_edge == 2) {
 		float t = abs(new_weights.z / step_coords.z);
 		time -= t;
 		end.weights = start.weights + time * step_coords;
@@ -238,9 +251,6 @@ void WalkMesh::walk_in_triangle(WalkPoint const &start, glm::vec3 const &step, W
 		// end.indices = glm::uvec3(start.indices.x, start.indices.y, start.indices.z);
 	}
 
-	printf("time %f \n", time);
-	pv3(to_world_point(end), "end");
-	pv3(end.weights, "end weights");
 	//Remember: our convention is that when a WalkPoint is on an edge,
 	// then wp.weights.z == 0.0f (so will likely need to re-order the indices)
 }
@@ -275,18 +285,8 @@ bool WalkMesh::cross_edge(WalkPoint const &start, WalkPoint *end_, glm::quat *ro
 		end.weights = normalizeSum(end.weights);
 
 		//make 'rotation' the rotation that takes (start.indices)'s normal to (end.indices)'s normal:
-		//TODO
-		rotation = rotationFromAtoB(glm::cross(a-b, c-b), glm::cross(b-a, vertices[start.indices.z]-a));
-		pv3(vertices[start.indices.x], "1");
-		pv3(vertices[start.indices.y], "2");
-		pv3(vertices[start.indices.z], "3");
-		pv3(vertices[vertz], "4");
-		/*pv3("");*/
-		printf("went from triangle %d %d %d to %d %d %d with rotation %f %f %f %f \n ", start.indices.x, start.indices.y, start.indices.z, 
-			edge.x, edge.y, vertz, 
-			rotation.x, rotation.y, rotation.z, rotation.w);
-		pv3(start.weights, "weight before");
-		pv3(end.weights, "weight after");
+		rotation = rotateNormal(glm::normalize(glm::cross(a-b, c-b))
+			,glm::normalize(glm::cross(b-a, vertices[start.indices.z]-a)));
 
 		return true;
 

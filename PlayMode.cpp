@@ -161,8 +161,6 @@ void PlayMode::update(float elapsed) {
 			float time;
 			walkmesh->walk_in_triangle(player.at, remain, &end, &time);
 			player.at = end;
-			pv3(walkmesh->to_world_point(player.at), "before crossing");
-			printf("\n");
 			if (time == 1.0f) {
 				//finished within triangle:
 				remain = glm::vec3(0.0f);
@@ -178,8 +176,6 @@ void PlayMode::update(float elapsed) {
 				player.at = end;
 				//rotate step to follow surface:
 				remain = rotation * remain;
-				pv3(walkmesh->to_world_point(player.at), "crossed player at");
-				pv3(remain, "crossed remain");
 			} else {
 				//ran into a wall, bounce / slide along it:
 				glm::vec3 const &a = walkmesh->vertices[player.at.indices.x];
