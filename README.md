@@ -1,8 +1,8 @@
-# (TODO: your game's title)
+# Cycle Sprint
 
-Author: (TODO: your name)
+Author: Isa Lie
 
-Design: (TODO: In two sentences or fewer, describe what is new and interesting about your game.)
+Design: The player bikes through a course on a WalkMesh, trying to reach the goal as fast as possible. Speed builds up with each key press but fades over time to emulate cycling, while the mouse-controlled orientation adds realism as the player dodges swinging obstacles and aims for the highest score.
 
 Screen Shot:
 
@@ -10,9 +10,15 @@ Screen Shot:
 
 How To Play:
 
-(TODO: describe the controls and (if needed) goals/strategy.)
+[W] Pedal forward
 
-Sources: (TODO: list a source URL for any assets you did not create yourself. Make sure you have a license for the asset.)
+[S] Pedal backward
+
+[Mouse] changes orientation
+
+[R] Restart
+
+[Space] Rings bike bell (just for fun, it doesn't affect gameplay)
 
 This game was built with [NEST](NEST.md).
 
