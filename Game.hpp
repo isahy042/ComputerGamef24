@@ -44,12 +44,27 @@ struct Player {
 
 	glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
 	std::string name = "";
+	int index;
+};
+
+struct NPC {
+	glm::vec2 position = glm::vec2(0.0f, 0.0f);
+	glm::u8vec4 color = glm::u8vec4(0xff);
+
+	glm::vec2 dir = glm::vec2(0.0f, 0.0f);
+	glm::vec2 velocity = glm::vec2(0.0f, 0.0f);
+
+	float time = 0.f; // time until next instruction
 };
 
 struct Game {
 	std::list< Player > players; //(using list so they can have stable addresses)
 	Player *spawn_player(); //add player the end of the players list (may also, e.g., play some spawn anim)
 	void remove_player(Player *); //remove player from game (may also, e.g., play some despawn anim)
+
+	// game variables
+	int ammo = 5;
+	std::list<NPC> NPCs; // npcs
 
 	std::mt19937 mt; //used for spawning players
 	uint32_t next_player_number = 1; //used for naming players

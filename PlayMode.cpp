@@ -103,19 +103,20 @@ void PlayMode::update(float elapsed) {
 
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
-	static std::array< glm::vec2, 16 > const circle = [](){
+	// set up draw
+	static std::array< glm::vec2, 16 > const circle = []() {
 		std::array< glm::vec2, 16 > ret;
 		for (uint32_t a = 0; a < ret.size(); ++a) {
 			float ang = a / float(ret.size()) * 2.0f * float(M_PI);
 			ret[a] = glm::vec2(std::cos(ang), std::sin(ang));
 		}
 		return ret;
-	}();
+		}();
 
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 	glDisable(GL_DEPTH_TEST);
-	
+
 	//figure out view transform to center the arena:
 	float aspect = float(drawable_size.x) / float(drawable_size.y);
 	float scale = std::min(
@@ -130,6 +131,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		0.0f, 0.0f, 1.0f, 0.0f,
 		0.0f, 0.0f, 0.0f, 1.0f
 	);
+	
 
 	{
 		DrawLines lines(world_to_clip);
@@ -152,6 +154,21 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		lines.draw(glm::vec3(Game::ArenaMin.x, Game::ArenaMin.y, 0.0f), glm::vec3(Game::ArenaMin.x, Game::ArenaMax.y, 0.0f), glm::u8vec4(0xff, 0x00, 0xff, 0xff));
 		lines.draw(glm::vec3(Game::ArenaMax.x, Game::ArenaMin.y, 0.0f), glm::vec3(Game::ArenaMax.x, Game::ArenaMax.y, 0.0f), glm::u8vec4(0xff, 0x00, 0xff, 0xff));
 
+		// draw a circle for each npc
+		for (auto const& npc : game.NPCs) {
+			glm::u8vec4 col = npc.color;
+		
+			for (uint32_t a = 0; a < circle.size(); ++a) {
+				lines.draw(
+					glm::vec3(npc.position + Game::PlayerRadius * circle[a], 0.0f),
+					glm::vec3(npc.position + Game::PlayerRadius * circle[(a + 1) % circle.size()], 0.0f),
+					col
+				);
+			}
+
+		}
+
+		// draw a circle for each player
 		for (auto const &player : game.players) {
 			glm::u8vec4 col = glm::u8vec4(player.color.x*255, player.color.y*255, player.color.z*255, 0xff);
 			if (&player == &game.players.front()) {
@@ -175,8 +192,9 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 				);
 			}
 
-			draw_text(player.position + glm::vec2(0.0f, -0.1f + Game::PlayerRadius), player.name, 0.09f);
+			//draw_text(player.position + glm::vec2(0.0f, -0.1f + Game::PlayerRadius), player.name, 0.09f);
 		}
+	
 	}
 	GL_ERRORS();
 }
