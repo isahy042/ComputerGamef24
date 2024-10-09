@@ -84,6 +84,14 @@ Game::Game() : mt(0x15466666) {
 		n.position.y = glm::mix(ArenaMin.y + 2.0f * PlayerRadius, ArenaMax.y - 2.0f * PlayerRadius, 0.4f + 0.2f * mt() / float(mt.max()));
 
 	}
+
+	// initialize gem position
+	float y = -0.5f;
+	for (int i = 0; i < 3; i++) {
+		gem_pos.push_back(glm::vec2(-0.35f, y));
+		gem_pos.push_back(glm::vec2(0.35f, y));
+		y += 0.6f;
+	}
 }
 
 Player *Game::spawn_player() {
@@ -122,12 +130,40 @@ void Game::remove_player(Player *player) {
 void Game::update(float elapsed) {
 
 	//player position/velocity update:
+
+	time += elapsed;
+	
+	if (time >= 1.5f) laser = false;
+
+	if (time >= 2.f) {
+		for (auto& p : players) {
+			if (p.index == 1 && p.controls.jump.pressed && ammo > 0) {
+				ammo -= 1;
+				laser = true;
+				time = 0.f;
+			}
+		}
+	}
+
 	for (auto &p : players) {
 		glm::vec2 dir = glm::vec2(0.0f, 0.0f);
 		if (p.controls.left.pressed) dir.x -= 1.0f;
 		if (p.controls.right.pressed) dir.x += 1.0f;
 		if (p.controls.down.pressed) dir.y -= 1.0f;
 		if (p.controls.up.pressed) dir.y += 1.0f;
+
+		for (int g = 0; g < 6; g++) {
+			if (gem[g] && p.index > 0) {
+				// kill player if it is 0.1f away from the gem
+				if (laser && glm::distance(p.position, gem_pos[g]) < 0.17f) {
+					remove_player(&p);
+				}
+				else if (glm::distance(p.position, gem_pos[g]) < 0.07f) {
+					gem[g] = false; // steal!
+				}
+			}
+			
+		}
 
 		if (dir == glm::vec2(0.0f)) {
 			p.velocity = glm::vec2(0.0f, 0.0f);
@@ -166,8 +202,6 @@ void Game::update(float elapsed) {
 	}
 
 	//NPC position/velocity update:
-	//std::srand(time(0));
-	
 	for (auto& npc : NPCs) {
 		
 		npc.time -= elapsed;
@@ -261,6 +295,14 @@ void Game::send_state_message(Connection *connection_, Player *connection_player
 		send_npc(NPC);
 	}
 
+	// send ammo info
+	connection.send(ammo);
+	connection.send(laser);
+
+	// gem stolen info
+	connection.send(gem);
+
+
 	//compute the message size and patch into the message header:
 	uint32_t size = uint32_t(connection.send_buffer.size() - mark);
 	connection.send_buffer[mark-3] = uint8_t(size);
@@ -322,6 +364,13 @@ bool Game::recv_state_message(Connection *connection_) {
 		read(&npc.position);
 		read(&npc.color);
 	}
+
+	// ammo info
+	read(&ammo);
+	read(&laser);
+
+	// gem stolen info
+	read(&gem);
 
 	if (at != size) throw std::runtime_error("Trailing data in state message.");
 

@@ -195,6 +195,15 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			//draw_text(player.position + glm::vec2(0.0f, -0.1f + Game::PlayerRadius), player.name, 0.09f);
 		}
 	
+		// draw gem for each available gem
+		for (int g = 0; g < 6; g++) {
+			if (game.gem[g]) lines.draw_gem(game.gem_pos[g], game.laser);
+		}
+
+		// ammo left
+		std::string text = "Remaining Laser Ammunition: " + std::to_string(game.ammo);
+		draw_text(glm::vec2(Game::ArenaMin.x - 1.f, Game::ArenaMin.y), text, 0.08f);
+
 	}
 	GL_ERRORS();
 }

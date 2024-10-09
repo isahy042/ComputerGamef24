@@ -90,6 +90,31 @@ void DrawLines::draw_box(glm::mat4x3 const &mat, glm::u8vec4 const &color) {
 	draw(mat * glm::vec4( 1.0f, 1.0f,-1.0f, 1.0f), mat * glm::vec4( 1.0f, 1.0f, 1.0f, 1.0f), color);
 }
 
+void DrawLines::draw_gem(glm::vec2 const& pos, bool const laser, glm::u8vec4 const& color) {
+	// outline
+	draw(glm::vec3(pos.x, pos.y + 0.02f, 0.f), glm::vec3(pos.x + 0.03f, pos.y, 0.f), color);
+	draw(glm::vec3(pos.x + 0.03f, pos.y, 0.f), glm::vec3(pos.x, pos.y - 0.05f, 0.f), color);
+	draw(glm::vec3(pos.x, pos.y - 0.05f, 0.f), glm::vec3(pos.x - 0.03f, pos.y, 0.f), color);
+	draw(glm::vec3(pos.x - 0.03f, pos.y, 0.f), glm::vec3(pos.x, pos.y + 0.02f, 0.f), color);
+
+	// inside
+	draw(glm::vec3(pos.x - 0.03f, pos.y, 0.f), glm::vec3(pos.x, pos.y - 0.01f, 0.f), color);
+	draw(glm::vec3(pos.x + 0.03f, pos.y, 0.f), glm::vec3(pos.x, pos.y - 0.01f, 0.f), color);
+	
+	// laser
+	if (laser) {
+		glm::u8vec4 red = glm::u8vec4(255, 0, 0, 255);
+		draw(glm::vec3(pos.x + 0.1f, pos.y, 0.f), glm::vec3(pos.x - 0.1f, pos.y, 0.f), red);
+		draw(glm::vec3(pos.x, pos.y + 0.1f, 0.f), glm::vec3(pos.x, pos.y - 0.1f, 0.f), red);
+		draw(glm::vec3(pos.x - 0.07f, pos.y + 0.07f, 0.f), glm::vec3(pos.x + 0.07f, pos.y - 0.07f, 0.f), red);
+		draw(glm::vec3(pos.x - 0.07f, pos.y - 0.07f, 0.f), glm::vec3(pos.x + 0.07f, pos.y + 0.07f, 0.f), red);
+	
+	}
+
+
+
+}
+
 void DrawLines::draw_text(std::string const &text, glm::vec3 const &anchor_in, glm::vec3 const &x, glm::vec3 const &y, glm::u8vec4 const &color, glm::vec3 *anchor_out) {
 
 	glm::vec3 anchor = anchor_in;

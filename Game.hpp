@@ -63,8 +63,14 @@ struct Game {
 	void remove_player(Player *); //remove player from game (may also, e.g., play some despawn anim)
 
 	// game variables
-	int ammo = 5;
+	uint8_t ammo = 5;
 	std::list<NPC> NPCs; // npcs
+
+	float time = 0.f;
+
+	std::vector<glm::vec2> gem_pos;
+	bool gem[6] = { true, true, true, true, true, true };
+	bool laser = false;
 
 	std::mt19937 mt; //used for spawning players
 	uint32_t next_player_number = 1; //used for naming players
