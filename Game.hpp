@@ -44,6 +44,7 @@ struct Player {
 
 	glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
 	std::string name = "";
+	bool active = true;
 	int index;
 };
 

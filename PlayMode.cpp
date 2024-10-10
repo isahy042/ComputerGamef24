@@ -103,7 +103,6 @@ void PlayMode::update(float elapsed) {
 }
 
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
-
 	// set up draw
 	static std::array< glm::vec2, 16 > const circle = []() {
 		std::array< glm::vec2, 16 > ret;
@@ -155,6 +154,12 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		lines.draw(glm::vec3(Game::ArenaMin.x, Game::ArenaMin.y, 0.0f), glm::vec3(Game::ArenaMin.x, Game::ArenaMax.y, 0.0f), glm::u8vec4(0xff, 0x00, 0xff, 0xff));
 		lines.draw(glm::vec3(Game::ArenaMax.x, Game::ArenaMin.y, 0.0f), glm::vec3(Game::ArenaMax.x, Game::ArenaMax.y, 0.0f), glm::u8vec4(0xff, 0x00, 0xff, 0xff));
 
+
+		if (!game.players.front().active) {
+			draw_text(glm::vec2(Game::ArenaMin.x, 0.f),
+				"You were caught by the laser trap!", 0.1f);
+			return;
+		}
 		// draw a circle for each npc
 		for (auto const& npc : game.NPCs) {
 			glm::u8vec4 col = npc.color;
@@ -170,13 +175,14 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		}
 
 		// draw a circle for each player
+		//printf("%d\n", game.players.front().index);
 		for (auto const &player : game.players) {
-
-			glm::u8vec4 col = (game.players.front().index == 0) ? 
+			if (!player.active) continue;
+			glm::u8vec4 col = (game.players.front().index == 1) ? 
 				glm::u8vec4(0xff, 0xff, 0xff, 0xff) // all players are the same to the guard
 				: glm::u8vec4(player.color.x*255, player.color.y*255, player.color.z*255, 0xff);
 
-			if (&player == &game.players.front() && player.index != 0) {
+			if (&player == &game.players.front() && player.index > 1) {
 				//mark current player (which server sends first):
 				lines.draw(
 					glm::vec3(player.position + Game::PlayerRadius * glm::vec2(-0.5f,-0.5f), 0.0f),
@@ -190,7 +196,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 				);
 			}
 			for (uint32_t a = 0; a < circle.size(); ++a) {
-				if (player.index == 0) continue;
+				if (player.index == 1) continue;
 				lines.draw(
 					glm::vec3(player.position + Game::PlayerRadius * circle[a], 0.0f),
 					glm::vec3(player.position + Game::PlayerRadius * circle[(a+1)%circle.size()], 0.0f),
@@ -203,10 +209,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		// draw gem for each available gem
 		bool gem_left = false;
 		for (int g = 0; g < 6; g++) {
-			if (game.gem[g]) {
-				lines.draw_gem(game.gem_pos[g], game.laser, interp_color(time + (g *  0.1f)));
-				gem_left = true;
-			}
+			lines.draw_gem(game.gem_pos[g], game.laser, game.gem[g], interp_color(time + (g *  0.1f)));
+			gem_left = gem_left || game.gem[g];
 		}
 
 		// ammo left
@@ -215,11 +219,11 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 		if (!gem_left && game.players.front().index != 0) {
 			draw_text(glm::vec2(Game::ArenaMin.x, 0.f),
-				"All gems have been stolen :)", 0.1f);
+				"All gems have been stolen :D", 0.1f);
 		}
 		if (!gem_left) {
 			draw_text(glm::vec2(Game::ArenaMin.x, 0.f),
-				"All gems have been stolen :(", 0.1f);
+				"All gems have been stolen D:", 0.1f);
 		}
 		else if (game.players.size() == 1) {
 			draw_text(glm::vec2(Game::ArenaMin.x, 0.f), 

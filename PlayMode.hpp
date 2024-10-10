@@ -18,7 +18,7 @@ struct PlayMode : Mode {
 	virtual void draw(glm::uvec2 const &drawable_size) override;
 	virtual glm::u8vec4 interp_color(float f);
 
-	float time; // used to interp between colors;
+	float time = 0.f; // used to interp between colors;
 	//----- game state -----
 
 	//input tracking for local player:

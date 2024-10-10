@@ -153,11 +153,12 @@ void Game::update(float elapsed) {
 		if (p.controls.up.pressed) dir.y += 1.0f;
 
 		for (int g = 0; g < 6; g++) {
-			if (gem[g] && p.index > 1) {
+			if (p.index > 1) {
 				// kill player if it is 0.1f away from the gem
 				if (laser && glm::distance(p.position, gem_pos[g]) < 0.17f) {
-					remove_player(&p);
-					ammo+=3; // gain 3 ammo from killing a player
+					if (p.active) ammo+=3; // gain 3 ammo from killing a player
+					p.active = false;
+
 				}
 				else if (glm::distance(p.position, gem_pos[g]) < 0.07f) {
 					gem[g] = false; // steal!
@@ -270,6 +271,8 @@ void Game::send_state_message(Connection *connection_, Player *connection_player
 		connection.send(player.position);
 		connection.send(player.velocity);
 		connection.send(player.color);
+		connection.send(player.index);
+		connection.send(player.active);
 	
 		//NOTE: can't just 'send(name)' because player.name is not plain-old-data type.
 		//effectively: truncates player name to 255 chars
@@ -344,6 +347,8 @@ bool Game::recv_state_message(Connection *connection_) {
 		read(&player.position);
 		read(&player.velocity);
 		read(&player.color);
+		read(&player.index);
+		read(&player.active);
 		uint8_t name_len;
 		read(&name_len);
 		//n.b. would probably be more efficient to directly copy from recv_buffer, but I think this is clearer:

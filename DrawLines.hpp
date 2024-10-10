@@ -25,7 +25,7 @@ struct DrawLines {
 	void draw_box(glm::mat4x3 const &mat, glm::u8vec4 const &color = glm::u8vec4(0xff));
 
 	//draw a gem
-	void draw_gem(glm::vec2 const& pos, bool const laser, glm::u8vec4 const& color = glm::u8vec4(0xff));
+	void draw_gem(glm::vec2 const& pos, bool const laser, bool const gem, glm::u8vec4 const& color = glm::u8vec4(0xff));
 
 	//draw wireframe text, start at anchor, move in x direction, mat gives x and y directions for text drawing:
 	// (default character box is 1 unit high)

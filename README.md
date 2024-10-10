@@ -1,8 +1,8 @@
-# (TODO: your game's title)
+# Gem Heist
 
-Author: (TODO: your name)
+Author: Isa Lie
 
-Design: (TODO: In two sentences or fewer, describe what is new and interesting about your game.)
+Design: This game introduces a unique blend of stealth and strategy, where players must blend in with computer controlled characters while trying to reach a gem, all while avoiding detection by a player-controlled defender who can trigger laser alarms.
 
 Networking: (TODO: How does your game implement client/server multiplayer? What messages are transmitted? Where in the code?)
 
