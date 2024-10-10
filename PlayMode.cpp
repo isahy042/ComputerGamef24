@@ -225,7 +225,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			draw_text(glm::vec2(Game::ArenaMin.x, 0.f),
 				"All gems have been stolen D:", 0.1f);
 		}
-		else if (game.players.size() == 1) {
+		else if (game.players.size() == 1 && game.players.front().index == 1) {
 			draw_text(glm::vec2(Game::ArenaMin.x, 0.f), 
 				"Waiting for gem thieves to join.. ", 0.1f);
 		} 
