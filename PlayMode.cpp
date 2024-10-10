@@ -67,6 +67,7 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 
 void PlayMode::update(float elapsed) {
 
+	time += elapsed / 10.f;
 	//queue data for sending to server:
 	controls.send_controls_message(&client.connection);
 
@@ -170,8 +171,12 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 		// draw a circle for each player
 		for (auto const &player : game.players) {
-			glm::u8vec4 col = glm::u8vec4(player.color.x*255, player.color.y*255, player.color.z*255, 0xff);
-			if (&player == &game.players.front()) {
+
+			glm::u8vec4 col = (game.players.front().index == 0) ? 
+				glm::u8vec4(0xff, 0xff, 0xff, 0xff) // all players are the same to the guard
+				: glm::u8vec4(player.color.x*255, player.color.y*255, player.color.z*255, 0xff);
+
+			if (&player == &game.players.front() && player.index != 0) {
 				//mark current player (which server sends first):
 				lines.draw(
 					glm::vec3(player.position + Game::PlayerRadius * glm::vec2(-0.5f,-0.5f), 0.0f),
@@ -185,6 +190,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 				);
 			}
 			for (uint32_t a = 0; a < circle.size(); ++a) {
+				if (player.index == 0) continue;
 				lines.draw(
 					glm::vec3(player.position + Game::PlayerRadius * circle[a], 0.0f),
 					glm::vec3(player.position + Game::PlayerRadius * circle[(a+1)%circle.size()], 0.0f),
@@ -192,18 +198,47 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 				);
 			}
 
-			//draw_text(player.position + glm::vec2(0.0f, -0.1f + Game::PlayerRadius), player.name, 0.09f);
 		}
 	
 		// draw gem for each available gem
+		bool gem_left = false;
 		for (int g = 0; g < 6; g++) {
-			if (game.gem[g]) lines.draw_gem(game.gem_pos[g], game.laser);
+			if (game.gem[g]) {
+				lines.draw_gem(game.gem_pos[g], game.laser, interp_color(time + (g *  0.1f)));
+				gem_left = true;
+			}
 		}
 
 		// ammo left
 		std::string text = "Remaining Laser Ammunition: " + std::to_string(game.ammo);
 		draw_text(glm::vec2(Game::ArenaMin.x - 1.f, Game::ArenaMin.y), text, 0.08f);
 
+		if (!gem_left && game.players.front().index != 0) {
+			draw_text(glm::vec2(Game::ArenaMin.x, 0.f),
+				"All gems have been stolen :)", 0.1f);
+		}
+		if (!gem_left) {
+			draw_text(glm::vec2(Game::ArenaMin.x, 0.f),
+				"All gems have been stolen :(", 0.1f);
+		}
+		else if (game.players.size() == 1) {
+			draw_text(glm::vec2(Game::ArenaMin.x, 0.f), 
+				"Waiting for gem thieves to join.. ", 0.1f);
+		} 
+
+
 	}
 	GL_ERRORS();
+}
+
+glm::u8vec4 PlayMode::interp_color(float f) {
+	// borrowed from the game 1 basecode https://github.com/15-466/15-466-f24-base1/blob/main/PlayMode.cpp
+	// thank you jim
+	f -= std::floor(f);
+	return glm::u8vec4(
+		std::min(255, std::max(0, int32_t(255 * 0.5f * (0.5f + std::sin(2.0f * M_PI * (f + 0.0f / 3.0f)))))),
+		std::min(255, std::max(0, int32_t(255 * 0.5f * (0.5f + std::sin(2.0f * M_PI * (f + 1.0f / 3.0f)))))),
+		std::min(255, std::max(0, int32_t(255 * 0.5f * (0.5f + std::sin(2.0f * M_PI * (f + 2.0f / 3.0f)))))),
+		0xff
+	);
 }

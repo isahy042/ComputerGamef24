@@ -153,10 +153,11 @@ void Game::update(float elapsed) {
 		if (p.controls.up.pressed) dir.y += 1.0f;
 
 		for (int g = 0; g < 6; g++) {
-			if (gem[g] && p.index > 0) {
+			if (gem[g] && p.index > 1) {
 				// kill player if it is 0.1f away from the gem
 				if (laser && glm::distance(p.position, gem_pos[g]) < 0.17f) {
 					remove_player(&p);
+					ammo+=3; // gain 3 ammo from killing a player
 				}
 				else if (glm::distance(p.position, gem_pos[g]) < 0.07f) {
 					gem[g] = false; // steal!
